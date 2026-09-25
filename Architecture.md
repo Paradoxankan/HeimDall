@@ -1,6 +1,6 @@
-<p align="center"><img src="./assets/heimdall-logo.jpeg" alt="HeimDall Logo" width="300"></p>
+<p align="center"><img src="./assets/heimdall-logo.png" alt="HeimDall Logo" width="260" /></p>
 
-# 🛡️ HeimDall — System Architecture
+# HeimDall - System Architecture
 
 > **Architecture & Technical Design Documentation**
 
@@ -280,7 +280,7 @@ FastAPI Backend
  │
  ├── Determine user permissions
  │
- ├── Read / write PostgreSQL
+ ├── Read/write PostgreSQL
  │
  └── Execute required business logic
  │
@@ -307,7 +307,7 @@ This flow covers common operations such as:
 
 Contract upload is the main end-to-end workflow because it connects the web client, backend, storage, database, AI layer, tasks, and notifications.
 
-## Step 1 — Upload
+## Step 1 - Upload
 
 The user uploads a contract PDF through the browser.
 
@@ -321,7 +321,7 @@ FastAPI
 
 ---
 
-## Step 2 — Store Contract
+## Step 2 - Store Contract
 
 FastAPI:
 
@@ -335,7 +335,7 @@ processing
 
 ---
 
-## Step 3 — OCR
+## Step 3 - OCR
 
 If the PDF is scanned:
 
@@ -344,14 +344,14 @@ PDF Image
    ↓
 OCR
    ↓
-Searchable / machine-readable text
+Searchable/machine-readable text
 ```
 
 Native documents can proceed with their available text.
 
 ---
 
-## Step 4 — AI Processing
+## Step 4 - AI Processing
 
 The extracted text enters the AI layer:
 
@@ -373,7 +373,7 @@ RAG grounds the model's processing in the contract's own wording.
 
 ---
 
-## Step 5 — Store Results
+## Step 5 - Store Results
 
 The backend stores the extracted information as structured records:
 
@@ -391,7 +391,7 @@ reviewed
 
 ---
 
-## Step 6 — Generate Tasks
+## Step 6 - Generate Tasks
 
 If an obligation contains a deadline:
 
@@ -409,7 +409,7 @@ The task can therefore be generated automatically from the contract obligation.
 
 ---
 
-## Step 7 — Notification
+## Step 7 - Notification
 
 The notification engine detects the new task and queues a reminder for the assigned user.
 
@@ -423,7 +423,7 @@ Email / In-app Alert
 
 ---
 
-## Step 8 — Dashboard Update
+## Step 8 - Dashboard Update
 
 The frontend refetches the contract dashboard.
 
@@ -766,11 +766,5 @@ The database schema is currently described as a **rough data model**, not a fina
 
 ---
 
-## 🛡️ HeimDall
-
-**Observe. Understand. Act.**
-
-> A technical foundation for turning organizational documents and obligations into structured, actionable workflows.
-se • 2026</sub>
-
+## HeimDall
 </div>
