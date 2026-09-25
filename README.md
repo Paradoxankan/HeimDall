@@ -52,7 +52,7 @@ HeimDall is designed primarily for **small and medium-sized organizations**, esp
 
 ---
 
-## 04 — The Core Idea
+## 04 - The Core Idea
 
 Most business software stores information.
 
@@ -96,7 +96,7 @@ This workflow is the central proof of concept for the MVP.
 
 ---
 
-## 05 — MVP Scope
+## 05 - MVP Scope
 
 The **Journey to Mastery MVP** focuses on a complete, demonstrable company workflow rather than attempting to build every enterprise feature at once.
 
