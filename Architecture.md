@@ -1,696 +1,776 @@
-<div align="center">
-  <img src="./assets/heimdall-logo.png" alt="HeimDall Logo" width="260" />
+<p align="center"><img src="./assets/heimdall-logo.jpeg" alt="HeimDall Logo" width="300"></p>
 
-  # HeimDall
+# 🛡️ HeimDall — System Architecture
 
-  ### Stay Ahead.
+> **Architecture & Technical Design Documentation**
 
-  **The digital operating platform for organizations.**
+HeimDall is being built as a single-page web application with a centralized **FastAPI backend**. The backend coordinates authentication, contracts, obligations, tasks, PostgreSQL, the AI/document-processing layer, file storage, and notifications.
 
-  <p>
-    <em>Observe. Understand. Act.</em>
-  </p>
-
-  <p>
-    <img src="https://img.shields.io/badge/Journey%20to%20Mastery-2026-0b63ce?style=for-the-badge" alt="Journey to Mastery" />
-    <img src="https://img.shields.io/badge/Stage-MVP-111827?style=for-the-badge" alt="MVP" />
-    <img src="https://img.shields.io/badge/AI-Powered-2563eb?style=for-the-badge" alt="AI Powered" />
-    <img src="https://img.shields.io/badge/B2B-SaaS-0f766e?style=for-the-badge" alt="B2B SaaS" />
-  </p>
-</div>
+This document describes the planned architecture, technology choices, request flow, contract-processing pipeline, and core data entities for the HeimDall MVP.
 
 ---
 
-## 01 — One-Line Idea
+## 1. System Overview
 
-> **HeimDall is an AI-powered company operating platform that connects people, tasks, contracts, communication and organizational insights in one workspace — turning important information into actions before they are missed.**
-
----
-
-## 02 — Problem Statement
-
-Small and mid-sized companies often manage people, contracts, tasks and communication across disconnected tools such as email, spreadsheets, cloud drives and chat apps. Important obligations and deadlines can therefore remain buried in documents with no clear owner or follow-up.
-
-**HeimDall connects these workflows and uses AI to turn contract obligations into assigned, trackable actions.**
-
----
-
-## 03 — Target Users
-
-HeimDall is designed primarily for **small and medium-sized organizations**, especially:
-
-- Startups
-- IT companies
-- Software teams
-- Agencies
-- Consulting firms
-- Service businesses
-- Small manufacturing organizations
-
-### Primary users inside a company
-
-| Role | What they use HeimDall for |
-|---|---|
-| **Employee** | Personal tasks, deadlines, profile, communication and authorized documents |
-| **Supervisor** | Assigning work, monitoring team activity and following up on deadlines |
-| **HR** | Employee information, contracts, obligations and organizational records |
-| **Admin / C-Suite** | Company-wide visibility, reports, contracts and operational health |
-
----
-
-## 04 — The Core Idea
-
-Most business software stores information.
-
-**HeimDall is designed to connect information with action.**
+At a high level, HeimDall follows this architecture:
 
 ```text
-                    COMPANY INFORMATION
-                           │
-          ┌────────────────┼────────────────┐
-          ▼                ▼                ▼
-      Contracts          People            Work
-          │                │                │
-          └────────────────┼────────────────┘
-                           ▼
-                    HEIMDALL AI
-                           │
-                           ▼
-                 Understand & Extract
-                           │
-                           ▼
-                   Obligation / Event
-                           │
-                           ▼
-                    Assigned Task
-                           │
-                           ▼
-                     Notification
-                           │
-                           ▼
-                    Action Completed
-                           │
-                           ▼
-                  Company Dashboard
+┌──────────────────────┐
+│   Browser / Web App  │
+│    SPA Frontend      │
+└──────────┬───────────┘
+           │
+           │ HTTPS / JSON
+           ▼
+┌──────────────────────────────────┐
+│         FastAPI Backend          │
+│                                  │
+│ Auth • Contracts • Obligations   │
+│ Tasks • Business Logic           │
+└───────┬──────────┬──────────┬────┘
+        │          │          │
+        ▼          ▼          ▼
+┌────────────┐ ┌───────────┐ ┌──────────────┐
+│ PostgreSQL │ │ AI Layer  │ │ File Storage │
+│            │ │           │ │              │
+│ Users      │ │ OCR       │ │ Contract PDFs│
+│ Roles      │ │ RAG       │ │ Uploaded     │
+│ Contracts  │ │ LLM       │ │ documents    │
+│ Obligations│ │           │ │              │
+│ Tasks      │ │           │ │              │
+│ Logs       │ │           │ │              │
+└────────────┘ └───────────┘ └──────────────┘
+        │          │
+        └────┬─────┘
+             ▼
+┌──────────────────────────┐
+│    Notification Engine   │
+│                          │
+│ Email / In-app Alerts    │
+└────────────┬─────────────┘
+             │
+             ▼
+┌──────────────────────────┐
+│ Browser Dashboard &      │
+│ Alerts Update             │
+└──────────────────────────┘
 ```
 
-### The hero workflow
-
-**Contract → AI Analysis → Obligation → Task → Reminder → Completion → Dashboard**
-
-This workflow is the central proof of concept for the MVP.
+The **backend is the central access layer**. The browser does not communicate directly with PostgreSQL, the AI layer, or file storage. Frontend data is returned through the REST API.
 
 ---
 
-## 05 — MVP Scope
+## 2. Architecture Principles
 
-The **Journey to Mastery MVP** focuses on a complete, demonstrable company workflow rather than attempting to build every enterprise feature at once.
+### Centralized Backend
 
-### Core MVP modules
-
-- 🔐 Company registration, login and role-based access
-- 🏢 Company workspace
-- 👤 Employee profiles and departments
-- ✅ Task creation, assignment, priority and deadlines
-- 📄 Contract upload and AI-powered contract understanding
-- 🧠 Extraction of key dates, parties, obligations and renewal/expiry terms
-- 🔗 Contract-to-task automation
-- 🔔 In-app reminders and notifications
-- 💬 Company and department channels
-- 💬 Direct messaging
-- 📊 Company dashboard
-- 📈 Basic operational reports
-
-### MVP success condition
-
-A user should be able to upload a contract, have HeimDall identify an actionable obligation, convert it into a task for the appropriate person, receive a reminder and see the resulting activity reflected on the company dashboard.
-
----
-
-## 06 — Contract Intelligence
-
-Contract intelligence is HeimDall's primary AI-powered differentiator in the MVP.
-
-A user can upload a business document such as an employment agreement, NDA, vendor agreement or service contract.
-
-HeimDall is designed to identify information such as:
+The FastAPI backend is responsible for coordinating the major application services.
 
 ```text
-Contract Type
-Parties
-Start Date
-Expiry / Renewal Date
-Notice Period
-Termination Conditions
-Responsibilities
-Obligations
-Important Deadlines
+Browser
+   ↓
+FastAPI
+   ↓
+Database / AI / Storage / Notifications
 ```
 
-### Example
+This keeps business logic and access control on the server rather than exposing internal services directly to the client.
+
+### API-Driven Frontend
+
+The web client communicates with the backend through:
 
 ```text
-CONTRACT ANALYSIS
-────────────────────────────
-
-Contract Type:     Service Agreement
-Parties:           Company A + Vendor B
-Expiry Date:       31 Dec 2026
-Notice Period:     30 Days
-
-KEY OBLIGATIONS
-✓ Monthly service report required
-✓ Payment due within agreed period
-✓ Renewal review required before expiry
-
-ACTION
-→ Create task for responsible manager
-→ Set deadline
-→ Notify assignee
+REST API
+HTTPS
+JSON
 ```
 
-The objective is not simply to summarize a PDF.
+The frontend renders data returned by the API.
 
-> **HeimDall turns a clause buried in a document into a visible organizational action.**
+### Permission-Aware Access
+
+Authentication and role-based access control are handled by the backend.
+
+A user should only be able to access contracts and organizational information they are authorized to see.
+
+### AI Grounded in Contract Data
+
+Contract-related AI responses use an:
+
+```text
+OCR → RAG → LLM
+```
+
+pipeline so that extracted information and answers are grounded in the specific contract being processed.
 
 ---
 
-## 07 — Company Workspace
+# 3. Planned Technology Stack
 
-HeimDall is envisioned as a connected workspace for the entire organization.
+| Layer | Technology | Purpose |
+|---|---|---|
+| Backend | **FastAPI / Python** | API, authentication, business logic |
+| Frontend | **HTML / CSS / JavaScript / React** | Web application interface |
+| Database | **PostgreSQL** | Users, contracts, obligations, tasks, logs |
+| Authentication | **JWT + OAuth2 password flow + cryptographic hashing** | Authentication and role-based access |
+| Authorization | **Role-Based Access Control** | Control access to organizational data |
+| AI / Document Processing | **OCR → RAG → LLM** | Contract text extraction and analysis |
+| File Storage | **Object storage bucket** | Uploaded PDFs and supporting documents |
+| Hosting | **Render + static frontend hosting** | Application deployment |
 
-### People
+---
 
-- Employee profiles
-- Departments
-- Supervisors
-- Roles and permissions
+# 4. Why These Technologies?
 
-### Work
+## FastAPI + Python
 
-- Tasks
-- Priorities
-- Deadlines
-- Status tracking
-- Task history
+FastAPI is the planned backend framework.
 
-### Contracts
+It provides:
 
-- Contract repository
-- AI analysis
-- Obligations
-- Renewal / expiry tracking
-- Contract dashboard
+- Python-based development
+- Async request handling
+- Automatic OpenAPI documentation
+- A suitable API layer for the MVP
 
-### Communication
+---
 
-- Company channels
-- Department channels
-- Direct messages
-- Mentions
+## HTML / CSS / JavaScript / React
+
+The frontend is planned as a web application using HTML, CSS, JavaScript and React.
+
+The goal is to provide a practical interface for:
+
+- Authentication
+- Contract management
+- Task management
+- Dashboards
 - Notifications
-
-### Visibility
-
-- Company dashboard
-- Department activity
-- Task completion
-- Overdue work
-- Contract statistics
+- Organizational workflows
 
 ---
 
-## 08 — Dashboard Concept
+## PostgreSQL
 
-The company dashboard gives authorized management users a quick view of what needs attention.
+PostgreSQL is used as the planned relational database.
+
+The system contains strongly related entities such as:
 
 ```text
-┌─────────────────────────────────────────────────┐
-│                    HEIMDALL                     │
-│              COMPANY OVERVIEW                   │
-├─────────────────────────────────────────────────┤
-│                                                 │
-│  EMPLOYEES        TASKS          CONTRACTS      │
-│     52             126              37         │
-│                                                 │
-│  OVERDUE          EXPIRING         PENDING      │
-│   09 Tasks       04 Contracts       05         │
-│                                                 │
-├─────────────────────────────────────────────────┤
-│  ⚠ ATTENTION REQUIRED                          │
-│                                                 │
-│  • 3 contracts require review                  │
-│  • 9 tasks are overdue                         │
-│  • 5 actions are awaiting completion           │
-│                                                 │
-└─────────────────────────────────────────────────┘
+User
+  ↓
+Contract
+  ↓
+Clause
+  ↓
+Obligation
+  ↓
+Task
+  ↓
+Notification
+```
+
+A relational database is therefore used to maintain relationships and constraints between these records.
+
+---
+
+## JWT Authentication
+
+Authentication is planned around:
+
+```text
+OAuth2 Password Flow
+        +
+JWT
+        +
+Cryptographic Password Hashing
+        +
+Role-Based Access Control
+```
+
+Document-level permissions are also enforced by the backend.
+
+For example, an employee should not be able to access a contract simply because it exists in the system.
+
+---
+
+# 5. AI / Document Processing Architecture
+
+Contract documents may arrive as native PDFs or scanned documents.
+
+The planned processing pipeline is:
+
+```text
+Contract PDF
+     │
+     ▼
+   OCR
+     │
+     ▼
+Machine-readable text
+     │
+     ▼
+   RAG
+     │
+     ▼
+   LLM
+     │
+     ▼
+Structured contract information
+```
+
+### OCR
+
+If the uploaded PDF is scanned, OCR converts the document image into machine-readable text.
+
+### RAG
+
+Retrieval-Augmented Generation keeps the AI response grounded in the specific contract text instead of relying only on general model knowledge.
+
+### LLM
+
+The language model processes the grounded contract information to identify items such as:
+
+- Parties
+- Dates
+- Obligations
+- Clauses
+- Potentially risky items
+
+---
+
+# 6. File Storage
+
+Uploaded contract PDFs are stored in an object-storage system.
+
+PostgreSQL stores the relevant metadata rather than large binary files.
+
+```text
+                    ┌──────────────┐
+Upload PDF ────────►│ File Storage │
+                    └──────────────┘
+                           │
+                           │ metadata
+                           ▼
+                    ┌──────────────┐
+                    │  PostgreSQL  │
+                    └──────────────┘
+```
+
+Keeping binary files outside the relational database helps keep database queries focused on structured data and allows the storage provider to be changed later without redesigning the database schema.
+
+---
+
+# 7. Request / Response Flow
+
+Most normal application requests follow the same path:
+
+```text
+User
+ │
+ ▼
+Browser
+ │
+ │ HTTPS / JSON
+ ▼
+FastAPI Backend
+ │
+ ├── Check JWT
+ │
+ ├── Determine user permissions
+ │
+ ├── Read / write PostgreSQL
+ │
+ └── Execute required business logic
+ │
+ ▼
+JSON Response
+ │
+ ▼
+Browser
+ │
+ ▼
+UI Update
+```
+
+This flow covers common operations such as:
+
+- Logging in
+- Opening a contract
+- Updating a task
+- Viewing dashboard information
+
+---
+
+# 8. Contract Upload Data Flow
+
+Contract upload is the main end-to-end workflow because it connects the web client, backend, storage, database, AI layer, tasks, and notifications.
+
+## Step 1 — Upload
+
+The user uploads a contract PDF through the browser.
+
+```text
+Browser
+   │
+   │ multipart POST
+   ▼
+FastAPI
 ```
 
 ---
 
-## 09 — Design & Product Sketches
+## Step 2 — Store Contract
 
-The initial product thinking started from a simple set of organizational workflows: contract understanding, task assignment, reminders, employee profiles, contract dashboards, stakeholders, communication and reporting.
+FastAPI:
 
-### Initial feature sketch
+1. Saves the raw PDF to file storage.
+2. Creates a Contract record in PostgreSQL.
+3. Sets the contract status to:
 
-<p align="center">
-  <img src="./assets/initial-feature-sketch.jpg" alt="Initial HeimDall feature sketch" width="520" />
-</p>
-
-### Product requirements
-
-<p align="center">
-  <img src="./assets/project-requirements.jpg" alt="HeimDall project requirements" width="520" />
-</p>
-
-### Miro / Excalidraw
-
-**Miro board:** `Add your Miro board link here`
-
-**UI sketch:** The repository assets above document the current early-stage product thinking. The final UI screens will be linked here once the Figma / Excalidraw workspace is finalized.
+```text
+processing
+```
 
 ---
 
-## 10 — Planned Technology Stack
+## Step 3 — OCR
 
-### Frontend
+If the PDF is scanned:
 
-- HTML5
-- CSS3
-- JavaScript
-- Figma for UI/UX design
-- Stitch for interface exploration / prototyping
+```text
+PDF Image
+   ↓
+OCR
+   ↓
+Searchable / machine-readable text
+```
 
-### Backend
+Native documents can proceed with their available text.
 
-- Python
-- FastAPI
-- REST APIs
+---
 
-### Database
+## Step 4 — AI Processing
+
+The extracted text enters the AI layer:
+
+```text
+Contract Text
+     ↓
+    RAG
+     ↓
+    LLM
+     ↓
+Parties
+Dates
+Clauses
+Obligations
+Risk-related information
+```
+
+RAG grounds the model's processing in the contract's own wording.
+
+---
+
+## Step 5 — Store Results
+
+The backend stores the extracted information as structured records:
+
+```text
+Contract
+ ├── Contract Clause
+ └── Contract Obligation
+```
+
+The Contract status changes to:
+
+```text
+reviewed
+```
+
+---
+
+## Step 6 — Generate Tasks
+
+If an obligation contains a deadline:
+
+```text
+Contract Obligation
+        ↓
+       Task
+        ↓
+Assigned User / Department
+        ↓
+      Deadline
+```
+
+The task can therefore be generated automatically from the contract obligation.
+
+---
+
+## Step 7 — Notification
+
+The notification engine detects the new task and queues a reminder for the assigned user.
+
+```text
+Task
+ ↓
+Notification Engine
+ ↓
+Email / In-app Alert
+```
+
+---
+
+## Step 8 — Dashboard Update
+
+The frontend refetches the contract dashboard.
+
+The user can then see:
+
+- Contract summary
+- Extracted obligations
+- Generated task
+- Relevant alerts
+
+### Complete Workflow
+
+```text
+┌─────────────┐
+│ Contract PDF│
+└──────┬──────┘
+       ▼
+┌─────────────┐
+│   FastAPI   │
+└──────┬──────┘
+       ├──────────────► File Storage
+       │
+       ▼
+┌─────────────┐
+│     OCR     │
+└──────┬──────┘
+       ▼
+┌─────────────┐
+│     RAG     │
+└──────┬──────┘
+       ▼
+┌─────────────┐
+│     LLM     │
+└──────┬──────┘
+       ▼
+┌──────────────────────────┐
+│ Clauses + Obligations    │
+└────────────┬─────────────┘
+             ▼
+       ┌──────────┐
+       │   Task   │
+       └────┬─────┘
+            ▼
+┌─────────────────────┐
+│ Notification Engine │
+└──────────┬──────────┘
+           ▼
+┌─────────────────────┐
+│ Dashboard / Alerts  │
+└─────────────────────┘
+```
+
+---
+
+# 9. Core Data Model
+
+The current design identifies the following core entities.
+
+## User
+
+Represents the person logging into HeimDall.
+
+A User has a role such as:
+
+```text
+Admin
+Procurement
+Employee
+...
+```
+
+The role determines what the user can see and do.
+
+---
+
+## Contract
+
+The central record created when a PDF is uploaded.
+
+It contains information such as:
+
+- Parties
+- Start date
+- End date
+- Value
+- Status
+
+Example statuses include:
+
+```text
+processing
+reviewed
+expiring
+```
+
+---
+
+## Contract Clause
+
+An individual clause extracted from a Contract by the AI layer.
+
+```text
+Contract
+   └── Contract Clause
+```
+
+A contract can contain multiple clauses.
+
+---
+
+## Contract Obligation
+
+A specific commitment associated with a contract clause.
+
+Examples include:
+
+- Quarterly audit
+- Payment deadline
+- Notice period
+
+Relationship:
+
+```text
+Contract
+   └── Clause
+         └── Obligation
+```
+
+---
+
+## Task
+
+A task can be:
+
+- Automatically created from an obligation
+- Manually created by a manager
+
+Each task has:
+
+- Assigned user
+- Deadline
+- Status
+
+```text
+Obligation
+     ↓
+    Task
+     ↓
+   User
+```
+
+---
+
+## Document
+
+Represents the underlying file associated with a contract.
+
+This includes:
+
+- Original contract upload
+- Supporting files
+
+The actual binary files are stored in object storage.
+
+---
+
+## Notification
+
+A reminder sent to a user.
+
+Notifications are triggered by events such as:
+
+```text
+Upcoming Task
+      OR
+Contract / Obligation Deadline
+```
+
+---
+
+## Activity Log
+
+Records meaningful actions performed in the system.
+
+Examples:
+
+```text
+Contract uploaded
+Contract edited
+Approval performed
+```
+
+This provides an audit trail of activity.
+
+---
+
+# 10. Entity Relationships
+
+The core relationships can be summarized as:
+
+```text
+User
+ │
+ │ has Role
+ ▼
+Role
+
+Contract
+ │
+ ├──────────► Contract Clause
+ │                    │
+ │                    ▼
+ │             Contract Obligation
+ │                    │
+ │                    ▼
+ │                  Task
+ │                    │
+ │                    ▼
+ │                  User
+ │
+ └──────────► Document
+
+Task / Contract Deadline
+             │
+             ▼
+       Notification
+
+Contract Activity
+             │
+             ▼
+       Activity Log
+```
+
+In short:
+
+> **A User has a Role. A Contract has many Clauses and Obligations. Each Obligation can generate a Task, every Task belongs to a User, Notifications are triggered by Tasks or Contract deadlines, and meaningful Contract activity is recorded in the Activity Log.**
+
+---
+
+# 11. Hosting
+
+The planned deployment architecture uses:
+
+```text
+Backend
+   ↓
+Render
+
+PostgreSQL
+   ↓
+Managed PostgreSQL
+
+Frontend
+   ↓
+Static Hosting
+```
+
+Render is planned for the backend and managed PostgreSQL, while the frontend is intended to use static hosting.
+
+---
+
+# 12. Security Model
+
+Security is implemented through the application architecture rather than direct client access to internal services.
+
+```text
+Browser
+   │
+   │ Request
+   ▼
+FastAPI
+   │
+   ├── JWT validation
+   ├── Role validation
+   ├── Document-level permission checks
+   │
+   ▼
+Authorized Service Access
+```
+
+The browser never directly accesses:
 
 - PostgreSQL
+- AI services
+- File storage
 
-### AI Layer
-
-- Large Language Model API
-- Retrieval-Augmented Generation (RAG)
-- Embeddings
-- Document processing
-- Contract information extraction
-- OCR for scanned documents
-
-### Development & Collaboration
-
-- Git
-- GitHub
-- GitHub Issues
-- Pull Requests
-- Code Reviews
-
-> The stack may evolve during implementation as the team validates the MVP architecture.
+All such access goes through the backend.
 
 ---
 
-## 11 — High-Level Architecture
+# 13. Architecture Summary
+
+The complete HeimDall architecture can be reduced to four layers:
 
 ```text
-                         ┌──────────────────┐
-                         │      USER        │
-                         └────────┬─────────┘
-                                  │
-                                  ▼
-                         ┌──────────────────┐
-                         │    FRONTEND      │
-                         │                  │
-                         │ Dashboard        │
-                         │ Tasks            │
-                         │ Contracts        │
-                         │ Chat             │
-                         │ Reports          │
-                         └────────┬─────────┘
-                                  │ REST API
-                                  ▼
-                         ┌──────────────────┐
-                         │     FASTAPI      │
-                         │                  │
-                         │ Auth             │
-                         │ RBAC             │
-                         │ Business Logic   │
-                         │ API Endpoints    │
-                         └───────┬──────────┘
-                                 │
-              ┌──────────────────┼──────────────────┐
-              ▼                  ▼                  ▼
-       ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-       │ PostgreSQL  │    │  AI SERVICE │    │   STORAGE   │
-       │             │    │             │    │             │
-       │ Users       │    │ LLM         │    │ Contracts   │
-       │ Tasks       │    │ RAG         │    │ Documents   │
-       │ Contracts   │    │ Embeddings  │    │ Files       │
-       │ Messages    │    │ OCR         │    │             │
-       └─────────────┘    └─────────────┘    └─────────────┘
+┌─────────────────────────────────┐
+│          PRESENTATION           │
+│     Browser / Web Client        │
+└────────────────┬────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────┐
+│          APPLICATION            │
+│       FastAPI REST API          │
+│ Auth • Contracts • Tasks        │
+└───────┬──────────┬──────────────┘
+        │          │
+        ▼          ▼
+┌────────────┐ ┌──────────────────┐
+│ PostgreSQL │ │ AI / Documents   │
+│ Structured │ │ OCR → RAG → LLM  │
+│ Data       │ │                  │
+└────────────┘ └──────────────────┘
+        │          │
+        └────┬─────┘
+             ▼
+┌─────────────────────────────────┐
+│       Notifications / Alerts    │
+└─────────────────────────────────┘
 ```
 
----
-
-## 12 — Security & Privacy
-
-HeimDall is intended to handle sensitive organizational information, so authorization is part of the core architecture.
-
-Key principles:
-
-- Role-Based Access Control (RBAC)
-- API-level authorization
-- Password hashing
-- Secure document access
-- Server-side permission checks
-- Environment variables for secrets
-- No API keys committed to GitHub
-- Confidential company documents protected by access rules
-- AI responses limited by the user's authorized data
-
-> **If a user cannot access a document through the application, the AI should not reveal its contents either.**
+The architecture is designed so that the backend remains the central control point while specialized services handle structured data, document storage, AI processing, and notifications.
 
 ---
 
-## 13 — Success Metrics
+## 📌 Current Architecture Scope
 
-The MVP will be evaluated using measurable product and technical outcomes.
+This document describes the **planned architecture** for HeimDall. It establishes the technical direction before implementation and defines:
 
-| Metric | MVP Target |
-|---|---|
-| Core modules working end-to-end | 100% demoable |
-| Contract → task workflow | Under 30 seconds in typical demo conditions |
-| AI contract analysis | Under 15 seconds for a typical 5–15 page text-based contract |
-| Blocking bugs at final rehearsal | 0 |
-| Core workflow | Contract → obligation → task → reminder → dashboard |
+- End-to-end system structure
+- Technology choices
+- Request and response flow
+- Contract processing flow
+- Core data entities
+- Storage strategy
+- Authentication and authorization approach
+- Deployment direction
 
-The main question is simple:
-
-> **Can HeimDall reliably turn organizational information into timely action?**
-
----
-
-## 14 — Business Model
-
-HeimDall is planned as a **freemium + B2B SaaS platform**.
-
-### Individuals — Free
-
-A limited free experience for personal productivity and basic organizational tools.
-
-### Premium Individuals
-
-Potential premium capabilities include:
-
-- AI recommendations
-- Personal AI researcher
-- Higher AI usage limits
-- Advanced insights
-- HeimDall certifications
-- Skill assessments
-
-### Companies — Paid
-
-Company workspaces are the primary B2B offering, with features such as:
-
-- Employee management
-- Task management
-- Contract intelligence
-- Documents
-- Communication
-- Organizational dashboards
-- Reports
-- Automation
-- Advanced permissions
-
-> Pricing, packaging and usage limits will be validated through future customer discovery rather than fixed during the MVP.
+The database schema is currently described as a **rough data model**, not a finalized schema.
 
 ---
 
-## 15 — Roadmap
+## 🛡️ HeimDall
 
-### Phase 1 — Journey to Mastery MVP
+**Observe. Understand. Act.**
 
-- [x] Product concept
-- [x] PRD
-- [x] Initial feature planning
-- [ ] Authentication & company workspace
-- [ ] Employee profiles & departments
-- [ ] Task management
-- [ ] Notifications
-- [ ] Contract intelligence
-- [ ] Contract → task automation
-- [ ] Communication
-- [ ] Company dashboard
-- [ ] Basic reports
-
-### Phase 2 — Organizational Intelligence
-
-- [ ] HeimDall AI Assistant
-- [ ] Company knowledge search
-- [ ] Advanced RAG
-- [ ] AI recommendations
-- [ ] Smart notifications
-- [ ] Workflow automation
-- [ ] AI-generated reports
-
-### Phase 3 — People & Community
-
-- [ ] Peer feedback
-- [ ] Recognition
-- [ ] Achievement badges
-- [ ] Leaderboards
-- [ ] Community improvements
-
-### Phase 4 — Individual Growth
-
-- [ ] Personal AI researcher
-- [ ] HeimDall certifications
-- [ ] Skill assessments
-- [ ] Learning paths
-- [ ] Verified achievements
-
-### Phase 5 — Ecosystem
-
-- [ ] Google Workspace integration
-- [ ] Microsoft 365 integration
-- [ ] GitHub / GitLab integration
-- [ ] Slack / Teams integration
-- [ ] Calendar integrations
-- [ ] HR system integrations
-- [ ] Enterprise identity providers
-- [ ] Mobile application
-
----
-
-## 16 — 4-Week Journey to Mastery Build Plan
-
-### Week 1 — Foundation
-
-**Goal:** Establish the organizational workspace.
-
-- Project setup
-- Database foundation
-- Authentication
-- Company workspace
-- Roles & permissions
-- Employee profiles
-- Initial UI
-
-### Week 2 — Operations
-
-**Goal:** Make the workspace useful for daily work.
-
-- Task management
-- Departments
-- Notifications
-- Company channels
-- Direct messaging
-- Company dashboard foundation
-
-### Week 3 — AI Hero Workflow
-
-**Goal:** Build the feature that differentiates HeimDall.
-
-- Contract upload
-- Document processing
-- AI contract analysis
-- Obligation extraction
-- Contract dashboard
-- Contract → task automation
-
-### Week 4 — Polish & Pitch
-
-**Goal:** Turn the prototype into a convincing product demonstration.
-
-- Reports
-- Permission testing
-- Error handling
-- UI refinement
-- Security checks
-- Testing
-- Deployment
-- Documentation
-- Demo rehearsal
-
----
-
-## 17 — Team
-
-### 👨‍💻 Ankan Biswas — Tech Lead
-
-**Focus:** Backend, architecture, APIs, AI integration and engineering coordination.
-
-### 👨‍💼 Sumit Sinha — Product Manager
-
-**Focus:** Product requirements, user needs, roadmap, validation and business direction.
-
-### 🎨 Debashis Dey — Design Lead
-
-**Focus:** UI/UX, Figma/Stitch exploration, product interface and design system.
-
-### Team capabilities
-
-- Python
-- C
-- HTML
-- CSS
-- Figma
-- Stitch
-- Git
-- GitHub
-
----
-
-## 18 — Development Workflow
-
-```text
-Product Idea
-     ↓
-GitHub Issue
-     ↓
-Feature Branch
-     ↓
-Development
-     ↓
-Testing
-     ↓
-Pull Request
-     ↓
-Code Review
-     ↓
-Merge
-     ↓
-Release
-```
-
-Example branches:
-
-```text
-feature/authentication
-feature/company-workspace
-feature/task-management
-feature/contract-analysis
-feature/ai-assistant
-feature/notifications
-feature/company-dashboard
-```
-
----
-
-## 19 — Repository Structure
-
-```text
-HeimDall/
-│
-├── frontend/
-│   ├── components/
-│   ├── pages/
-│   ├── services/
-│   └── assets/
-│
-├── backend/
-│   ├── api/
-│   ├── auth/
-│   ├── models/
-│   ├── schemas/
-│   ├── services/
-│   └── database/
-│
-├── ai/
-│   ├── document_processing/
-│   ├── contract_analysis/
-│   ├── embeddings/
-│   ├── rag/
-│   └── assistant/
-│
-├── docs/
-│   ├── PRD.md
-│   ├── architecture.md
-│   ├── API.md
-│   ├── roadmap.md
-│   └── sketches/
-│
-├── tests/
-├── assets/
-├── .env.example
-├── .gitignore
-└── README.md
-```
-
----
-
-## 20 — Long-Term Vision
-
-HeimDall is not intended to be just another task manager or document repository.
-
-The long-term vision is to build a connected organizational operating layer where:
-
-```text
-People
-  +
-Work
-  +
-Contracts
-  +
-Knowledge
-  +
-Communication
-  +
-AI
-  +
-Organizational Intelligence
-```
-
-work together in one platform.
-
-### Our vision
-
-> ## **Make organizations easier to run, easier to understand and harder to lose track of.**
-
----
-
-## 🛡️ Why the name HeimDall?
-
-The name is inspired by **Heimdall**, the watchful guardian from Norse mythology.
-
-The metaphor fits the product: HeimDall is designed to help an organization stay aware of its people, responsibilities, documents, deadlines and operational signals.
-
-**Stay Ahead.**
-
----
-
-<div align="center">
-
-  ## 🛡️ HeimDall
-
-  **Stay Ahead.**
-
-  *The digital operating platform for organizations.*
-
-  <sub>Built for the Journey to Mastery • MVP Release • 2026</sub>
+> A technical foundation for turning organizational documents and obligations into structured, actionable workflows.
+se • 2026</sub>
 
 </div>
