@@ -1,13 +1,5 @@
 # HeimDall Roadmap
 
-**Product:** HeimDall  
-**Tagline:** Stay Ahead  
-**Platform:** Web Application  
-**Program:** Journey to Mastery  
-**MVP Timeline:** 4 Weeks
-
----
-
 ## 1. Roadmap Overview
 
 The goal of the first four weeks is to build a working HeimDall MVP that demonstrates the main company management workflow.
@@ -860,7 +852,3 @@ HeimDall starts with a focused problem: companies have too much information spre
 The first four weeks should prove that a single platform can connect people, work, contracts, documents, reminders, and AI assistance in one place.
 
 Everything after the MVP should be driven by real user feedback and actual organizational needs.
-
-**HeimDall**
-
-**Stay Ahead**
