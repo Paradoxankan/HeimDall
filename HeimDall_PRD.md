@@ -1,14 +1,4 @@
-# 🛡️ HeimDall — Product Requirements Document (PRD)
-
-> **The Digital Operating Platform for Organizations**
->
-> **Brand:** HeimDall  
-> **Tagline:** Stay Ahead  
-> **Project:** Journey to Mastery  
-> **Document Type:** Product Requirements Document (PRD)  
-> **MVP Timeline:** 4 Weeks
-
----
+# HeimDall - Product Requirements Document (PRD)
 
 ## 1. Problem Statement
 
@@ -117,7 +107,7 @@ The platform shall support:
   - Skills
   - Relevant activity
 - Department creation and management
-- Manager / supervisor assignment
+- Manager/supervisor assignment
 - Employee directory with search and filtering
 - Role and permission assignment
 - Employee-facing view of:
@@ -144,7 +134,7 @@ The platform shall support:
   - Tasks
   - Documents
   - Members
-  - Meetings / discussions
+  - Meetings/discussions
   - Activity
 
 ### Tasks
@@ -457,7 +447,7 @@ Where explicitly implemented, the assistant may support actions such as:
 ```text
 Identify obligation
       ↓
-Create reminder / task
+Create reminder/task
 ```
 
 Actions must only be performed when explicitly requested by the user.
@@ -512,7 +502,7 @@ Settings
 
 ---
 
-## 5.2 Core User Flow A — New Company
+## 5.2 Core User Flow A - New Company
 
 ```text
 Register Company
@@ -530,7 +520,7 @@ Company Dashboard
 
 ---
 
-## 5.3 Core User Flow B — Contract Intelligence
+## 5.3 Core User Flow B - Contract Intelligence
 
 ```text
 Upload Contract
@@ -554,7 +544,7 @@ Monitor Contract Dashboard
 
 ---
 
-## 5.4 Core User Flow C — Task Manager
+## 5.4 Core User Flow C - Task Manager
 
 ```text
 Manager Creates Task
@@ -576,7 +566,7 @@ Dashboard Metrics Updated
 
 ---
 
-## 5.5 Core User Flow D — AI Company Question
+## 5.5 Core User Flow D - AI Company Question
 
 ```text
 User Asks Question
@@ -598,7 +588,7 @@ Task/reminder creation occurs only if the user explicitly requests it.
 
 ---
 
-## 5.6 Core User Flow E — Executive Overview
+## 5.6 Core User Flow E - Executive Overview
 
 ```text
 C-Suite / Admin Opens Dashboard
@@ -643,7 +633,7 @@ before implementation.
 
 # 6. Scope & Boundaries
 
-## 6.1 In Scope — 4-Week MVP
+## 6.1 In Scope - 4-Week MVP
 
 The MVP includes:
 
@@ -790,7 +780,7 @@ The longer-term product should measure:
 
 ---
 
-# 🛡️ Product Principle
+# Product Principle
 
 HeimDall is designed around a simple product principle:
 
@@ -820,20 +810,8 @@ Reports
 
 into a unified company workspace.
 
----
-
-## 📌 Document Status
-
-**Status:** MVP Product Requirements  
-**Timeline:** 4 weeks  
-**Product:** HeimDall  
-**Platform:** Web Application  
-**Primary Focus:** Company Management + Contract Intelligence + AI-Assisted Organizational Workflows
-
----
-
 <p align="center">
 
-**🛡️ HeimDall — Stay Ahead**
+** Heimdall - Stay Ahead**
 
 </p>
