@@ -1,13 +1,5 @@
 # HeimDall API Specification
 
-**Product:** HeimDall  
-**API Version:** v1  
-**Base Path:** `/api/v1`  
-**Status:** MVP  
-**Document Version:** 1.0
-
----
-
 ## 1. Overview
 
 The HeimDall API provides the backend interface for the company workspace and contract intelligence platform.
