@@ -1,4 +1,4 @@
-# 🛡️ HeimDall — Software Requirements Specification
+# HeimDall - Software Requirements Specification
 
 > **Product:** HeimDall  
 > **Tagline:** Stay Ahead  
@@ -956,7 +956,7 @@ AI / Document Services
 The deployed application shall:
 
 - Use HTTPS.
-- Keep secrets outside source code.
+- Keep secrets outside the source code.
 - Keep database credentials outside the repository.
 - Keep API keys outside the frontend.
 - Provide separate configuration for development and deployment environments.
@@ -1035,7 +1035,7 @@ The following requirements are the **minimum product scope for the 4-week Journe
 
 The MVP shall be considered functionally demonstrable when the following complete workflows work end-to-end:
 
-### Workflow 1 — Company Setup
+### Workflow 1 - Company Setup
 
 ```text
 Create Company
@@ -1047,7 +1047,7 @@ Assign Role
 Employee Joins Workspace
 ```
 
-### Workflow 2 — Task Management
+### Workflow 2 - Task Management
 
 ```text
 Manager
@@ -1063,7 +1063,7 @@ Task Completed
 Dashboard Updated
 ```
 
-### Workflow 3 — Contract Intelligence
+### Workflow 3 - Contract Intelligence
 
 ```text
 Upload Contract
@@ -1081,7 +1081,7 @@ Reminder
 Dashboard
 ```
 
-### Workflow 4 — AI Assistant
+### Workflow 4 - AI Assistant
 
 ```text
 Authorized User
@@ -1097,7 +1097,7 @@ AI Response
 Source / Record Reference
 ```
 
-### Workflow 5 — Management Overview
+### Workflow 5 - Management Overview
 
 ```text
 Manager / Admin
