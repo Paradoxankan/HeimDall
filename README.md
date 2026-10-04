@@ -1,17 +1,20 @@
-<p align="center">
-  <img src="heimdall-frontend/public/logo.png" alt="HeimDall Logo" width="140" />
-</p>
+  <p align="center"> <img src="./assets/heimdall-logo.png" alt="HeimDall Logo" width="100" /> </p>
 
-# HeimDall — Enterprise Workspace
+# HeimDall
 
-> **Stay Ahead.** A role-based company workspace with grounded AI assistance, built for employees, managers, HR teams and executives.
+> A company management platform that helps teams keep people, projects, documents, contracts, and obligations organized in one place.
 
-**Submitted to Journey to Masky — Level 2 (Kenshi)**
+---
+
+## The Idea
+
+Companies often manage important information across spreadsheets, chat messages, emails, cloud folders, and disconnected tools. This makes it difficult to know what needs attention, who is responsible for it, and what obligations are approaching. **HeimDall** brings company operations into one centralized workspace for managing people, projects, tasks, documents, contracts, and obligations. Its core differentiator is contract intelligence, helping teams understand contracts, identify risks, extract obligations, and track what needs to be done.
+
+---
 
 | | |
 |---|---|
 | 🌐 **Live demo** | https://heimdall-hazel.vercel.app/ |
-| 💻 **Repository** | https://github.com/Sumit10Sinha/HeimDall |
 
 ---
 
@@ -46,20 +49,23 @@ HeimDall brings a company's day-to-day work into one workspace. The landing page
 
 ---
 
-## Planning Docs
+## Sketch
 
-| Document | Link |
-|---|---|
-| PRD (Product Requirements) | `docs/PRD.md` |
-| Architecture | `docs/ARCHITECTURE.md` |
-| Roadmap | `docs/ROADMAP.md` |
-| Deviation from plan | See below |
+<!-- Excalidraw only. Link the live board AND embed/link a static export as backup. -->
 
-### Deviation from plan
+![Sketch](./sketches)
 
-- The original concept was an **AI Contract Risk & Obligation Manager**. It grew into the broader HeimDall company-management platform.
-- The designs show a live Gemini-generated company summary and contract analysis. In this MVP, **data comes from a local `mockData.json`** and **AI responses are simulated** (a 2-second loading state, then a text response).
-- Real backend, database, authentication and AI APIs are deliberately deferred to the next milestone (see *What We Learnt*).
+[View live board (Excalidraw)](https://excalidraw.com/#json=wLM3da9J0HQDwyx_gAEGR,qaLlLSxaOpqr-dwqwuVeyQ)
+
+---
+
+## Documents
+
+- [Product Requirements](./HeimDall_PRD.md)
+- [Architecture](./Architecture.md)
+- [API Spec](./HeimDall_API_Spec.md)
+- [Roadmap](./HeimDall_Roadmap.md)
+- [Requirements](./HeimDall_Requirements.md)
 
 ---
 
@@ -154,4 +160,14 @@ Layouts adapt from mobile (375px) to desktop (1280px), with a dual-button dark/l
 
 ---
 
-**Author / Team:** Kenshi · Journey to Masky — Level 2
+## What I'm Building Toward
+
+**Kenshi (frontend):** A complete visual prototype of HeimDall with the main company workspace, dashboard, people management, projects, tasks, contracts, obligations, documents, notifications, reports, and contract-focused AI interface. The frontend will demonstrate the complete user journey and how different parts of the platform connect, even before a backend exists.
+
+**Samurai (full-stack):** Connect the interface to a real backend, database, authentication, and role-based access control. Companies will be able to create workspaces, add employees, manage projects and tasks, upload contracts, extract contract information, track obligations, receive notifications, and interact with HeimDall's AI capabilities using real data.
+
+**Shogun (production):** A secure, scalable SaaS platform that real companies can use for day-to-day operations. HeimDall will provide reliable company management, contract intelligence, AI-assisted decision support, integrations, auditability, and subscription-based features, with the long-term goal of becoming a practical operating workspace for organizations.
+
+---
+
+*Submitted to Journey to Mastery - Level 2: Kenshi*
