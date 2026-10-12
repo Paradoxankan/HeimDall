@@ -1,0 +1,17 @@
+'use client'
+import {useState} from 'react'
+import {useWs,first,days,fmt,due,ago} from '@/lib/store'
+import {Card,Chip,Empty,Stat,Bar,Head} from '../ui'
+import AIWidget from '../AIWidget'
+import {ST,PR,Th,Updates,Projects} from './shared'
+export function HR(){
+ const {data,me,decideLeave}=useWs();const [q,setQ]=useState(''),[dept,setDept]=useState('All'),leave:any[]=data.leave
+ const depts=['All',...Array.from(new Set(data.people.map((p:any)=>p.dept)))] as string[]
+ const rows=data.people.filter((p:any)=>(dept==='All'||p.dept===dept)&&p.name.toLowerCase().includes(q.trim().toLowerCase()))
+ return <div className="fade"><Head title={`Good morning, ${first(me.name)}`} sub={`${leave.length} leave ${leave.length===1?'request needs':'requests need'} a decision.`}/>
+ <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4"><Stat label="Headcount" value={data.people.length}/><Stat label="On leave today" value={data.people.filter((p:any)=>p.status==='On leave').length}/><Stat label="Pending requests" value={leave.length}/><Stat label="Joining soon" value={data.joiners.length} note="Next 2 weeks"/></div>
+ <div className="grid gap-4 lg:grid-cols-3"><Card className="lg:col-span-2" title="Employee directory" action={<div className="flex gap-2"><input className="field w-40" placeholder="Search name..." value={q} onChange={e=>setQ(e.target.value)} aria-label="Search employees"/><select className="field" value={dept} onChange={e=>setDept(e.target.value)} aria-label="Department">{depts.map(d=><option key={d}>{d}</option>)}</select></div>}>
+  {rows.length?<div className="-m-4 overflow-x-auto"><table className="w-full"><thead><tr className="border-b border-line"><Th c="Name"/><Th c="Department"/><Th c="Location"/><Th c="Joined"/><Th c="Status"/></tr></thead><tbody>{rows.map((p:any)=><tr key={p.name} className="border-b border-line last:border-0"><td className="px-3 py-2.5"><p className="font-medium">{p.name}</p><p className="text-xs text-mute">{p.role}</p></td><td className="px-3">{p.dept}</td><td className="px-3">{p.city}</td><td className="px-3">{fmt(p.joined)} {p.joined.slice(0,4)}</td><td className="px-3"><Chip tone={p.status==='Active'?'ok':'warn'}>{p.status}</Chip></td></tr>)}</tbody></table></div>:<Empty dashed title="No employees found." hint="Try adjusting your search query."/>}</Card>
+ <div className="space-y-4"><Card title="Leave requests">{leave.length?<ul className="space-y-3">{leave.map((l:any)=><li key={l.id}><p className="font-medium">{l.name} <span className="font-normal text-mute">{l.type}</span></p><p className="text-xs text-mute">{fmt(l.from)} to {fmt(l.to)}</p><div className="mt-1.5 flex gap-2"><button onClick={()=>decideLeave(l.id,'APPROVED')} className="rounded bg-accent px-2.5 py-1 text-xs font-medium text-white dark:text-[#07101f]">Approve</button><button onClick={()=>decideLeave(l.id,'DECLINED')} className="rounded border border-line px-2.5 py-1 text-xs">Decline</button></div></li>)}</ul>:<Empty title="No pending requests" hint="New leave requests will appear here for approval."/>}</Card>
+ <Card title="Joining soon">{data.joiners.length?<ul className="space-y-2">{data.joiners.map((j:any)=><li key={j.name} className="flex justify-between"><span>{j.name} <span className="text-mute">{j.role}</span></span><span className="text-mute">{fmt(j.start)}</span></li>)}</ul>:<Empty title="No new joiners" hint="Upcoming start dates will be listed here."/>}</Card><AIWidget/></div></div></div>}
+

@@ -1,0 +1,319 @@
+{
+ "people": [
+  {
+   "name": "Ankan",
+   "role": "Chief Executive Officer",
+   "dept": "Leadership",
+   "city": "Kolkata",
+   "joined": "2018-04-02",
+   "status": "Active"
+  },
+  {
+   "name": "Sumit",
+   "role": "Design Manager",
+   "dept": "Design",
+   "city": "Kolkata",
+   "joined": "2021-07-19",
+   "status": "Active"
+  },
+  {
+   "name": "Debashis",
+   "role": "HR Business Partner",
+   "dept": "People",
+   "city": "Kolkata",
+   "joined": "2020-02-03",
+   "status": "Active"
+  },
+  {
+   "name": "Swapnil",
+   "role": "Product Designer",
+   "dept": "Design",
+   "city": "Kolkata",
+   "joined": "2024-03-11",
+   "status": "Active"
+  },
+  {
+   "name": "Anamitra",
+   "role": "Frontend Engineer",
+   "dept": "Engineering",
+   "city": "Kolkata",
+   "joined": "2023-01-09",
+   "status": "Active"
+  }
+ ],
+ "tasks": [
+  {
+   "id": "t1",
+   "title": "Finish role-based dashboard layouts",
+   "desc": "Final layouts for the Employee, Manager, HR and Executive dashboards in light and dark mode.",
+   "project": "Asgard",
+   "assignee": "Swapnil",
+   "priority": "high",
+   "due": "2026-10-08",
+   "status": "todo",
+   "progress": 0
+  },
+  {
+   "id": "t2",
+   "title": "Add logo and brand assets",
+   "desc": "Export transparent and light logo variants and apply them to the sidebar and landing page.",
+   "project": "Asgard",
+   "assignee": "Swapnil",
+   "priority": "medium",
+   "due": "2026-10-13",
+   "status": "progress",
+   "progress": 60
+  },
+  {
+   "id": "t3",
+   "title": "Design empty and loading states",
+   "desc": "Empty states for every list and a skeleton loader for the AI assistant.",
+   "project": "Asgard",
+   "assignee": "Swapnil",
+   "priority": "medium",
+   "due": "2026-10-14",
+   "status": "todo",
+   "progress": 0
+  },
+  {
+   "id": "t4",
+   "title": "Polish dark mode transitions",
+   "desc": "Smooth 300ms theme fade and check chart contrast in both modes.",
+   "project": "Asgard",
+   "assignee": "Swapnil",
+   "priority": "high",
+   "due": "2026-10-10",
+   "status": "progress",
+   "progress": 35
+  },
+  {
+   "id": "t5",
+   "title": "Connect AI assistant to workspace data",
+   "desc": "Let the assistant answer questions about tasks, deadlines and projects.",
+   "project": "Bifrost",
+   "assignee": "Swapnil",
+   "priority": "high",
+   "due": "2026-10-12",
+   "status": "blocked",
+   "progress": 20,
+   "reason": "Waiting on the final data schema"
+  },
+  {
+   "id": "t6",
+   "title": "Mock up contract upload flow",
+   "desc": "Upload screen and clause-flagging view for contract review.",
+   "project": "Yggdrasil",
+   "assignee": "Swapnil",
+   "priority": "high",
+   "due": "2026-10-16",
+   "status": "progress",
+   "progress": 10
+  },
+  {
+   "id": "t7",
+   "title": "Write product requirements document",
+   "desc": "PRD covering users, roles, features and the four-week plan.",
+   "project": "Asgard",
+   "assignee": "Swapnil",
+   "priority": "low",
+   "due": "2026-10-02",
+   "status": "done",
+   "progress": 100
+  },
+  {
+   "id": "t8",
+   "title": "Build global workspace state",
+   "desc": "Share task status across dashboards using React Context and localStorage.",
+   "project": "Bifrost",
+   "assignee": "Anamitra",
+   "priority": "high",
+   "due": "2026-10-05",
+   "status": "progress",
+   "progress": 70
+  },
+  {
+   "id": "t9",
+   "title": "Set up Vercel deployment",
+   "desc": "Configure the production build and test the live link from a clean clone.",
+   "project": "Bifrost",
+   "assignee": "Anamitra",
+   "priority": "medium",
+   "due": "2026-10-09",
+   "status": "todo",
+   "progress": 0
+  },
+  {
+   "id": "t10",
+   "title": "Review contract risk scoring",
+   "desc": "Agree how clauses are scored as low, medium or high risk.",
+   "project": "Yggdrasil",
+   "assignee": "Sumit",
+   "priority": "medium",
+   "due": "2026-10-11",
+   "status": "progress",
+   "progress": 40
+  },
+  {
+   "id": "t11",
+   "title": "Build HR directory search",
+   "desc": "Live name search and department filter with a no-results state.",
+   "project": "Asgard",
+   "assignee": "Anamitra",
+   "priority": "high",
+   "due": "2026-10-15",
+   "status": "todo",
+   "progress": 0
+  },
+  {
+   "id": "t12",
+   "title": "Write README and setup guide",
+   "desc": "Setup steps that work from a clean clone, plus the data-source notes.",
+   "project": "Asgard",
+   "assignee": "Anamitra",
+   "priority": "low",
+   "due": "2026-10-01",
+   "status": "done",
+   "progress": 100
+  }
+ ],
+ "projects": [
+  {
+   "name": "Asgard",
+   "sub": "Employee workspace",
+   "status": "On track",
+   "tone": "ok",
+   "pct": 75,
+   "lead": "Sumit",
+   "team": 3,
+   "milestone": "Final QA",
+   "deadline": "2026-10-31"
+  },
+  {
+   "name": "Bifrost",
+   "sub": "AI assistant and data layer",
+   "status": "Delayed",
+   "tone": "warn",
+   "pct": 40,
+   "lead": "Anamitra",
+   "team": 2,
+   "milestone": "Data schema final",
+   "deadline": "2026-11-14"
+  },
+  {
+   "name": "Yggdrasil",
+   "sub": "Contract intelligence",
+   "status": "Planning",
+   "tone": "accent",
+   "pct": 15,
+   "lead": "Swapnil",
+   "team": 2,
+   "milestone": "Scope definition",
+   "deadline": "2026-11-28"
+  }
+ ],
+ "activity": [
+  {
+   "who": "Anamitra",
+   "what": "uploaded",
+   "target": "Asgard_Dashboard_Layouts_v2.pdf",
+   "min": 60
+  },
+  {
+   "who": "Sumit",
+   "what": "commented on",
+   "target": "Connect AI assistant to workspace data",
+   "min": 180
+  },
+  {
+   "who": "Anamitra",
+   "what": "commented on",
+   "target": "Build HR directory search",
+   "min": 240
+  },
+  {
+   "who": "Swapnil",
+   "what": "uploaded",
+   "target": "Asgard_Brand_Assets_v1.zip",
+   "min": 300
+  }
+ ],
+ "leave": [
+  {
+   "id": "l1",
+   "name": "Swapnil",
+   "type": "Annual leave",
+   "from": "2026-10-19",
+   "to": "2026-10-23"
+  },
+  {
+   "id": "l2",
+   "name": "Anamitra",
+   "type": "Casual leave",
+   "from": "2026-10-08",
+   "to": "2026-10-09"
+  }
+ ],
+ "joiners": [],
+ "exec": {
+  "score": 6,
+  "compliance": 95,
+  "summary": [
+   "Asgard is on track for the 31 Oct milestone; Bifrost is slipping on the data schema.",
+   "The AI assistant task is blocked until the schema is final, which also holds up Yggdrasil.",
+   "The Astra Corp renewal in 3 days has two clauses flagged for review."
+  ],
+  "risks": [
+   {
+    "level": "Critical",
+    "tone": "bad",
+    "title": "Bifrost is behind schedule",
+    "detail": "The data layer is at 40% and the AI assistant task is blocked.",
+    "dept": "Engineering",
+    "next": "Agree the data schema this week"
+   },
+   {
+    "level": "Medium",
+    "tone": "warn",
+    "title": "Contract risk scoring undecided",
+    "detail": "Clause flagging in Yggdrasil cannot start until scoring rules are agreed.",
+    "dept": "Product",
+    "next": "Finish the scoring review"
+   },
+   {
+    "level": "Low",
+    "tone": "ok",
+    "title": "Deployment not yet tested",
+    "detail": "The production build has not been checked from a clean clone.",
+    "dept": "Engineering",
+    "next": "Run the clean-clone test"
+   }
+  ],
+  "contracts": [
+   {
+    "name": "Astra Corp renewal",
+    "due": "2026-10-09",
+    "note": "Two clauses flagged for executive review"
+   }
+  ],
+  "revenue": [
+   {
+    "m": "Jul",
+    "product": 48,
+    "services": 31,
+    "sales": 22
+   },
+   {
+    "m": "Aug",
+    "product": 52,
+    "services": 34,
+    "sales": 24
+   },
+   {
+    "m": "Sep",
+    "product": 57,
+    "services": 36,
+    "sales": 27
+   }
+  ]
+ }
+}

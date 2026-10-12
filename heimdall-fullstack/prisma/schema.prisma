@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+enum Role {
+  EMPLOYEE
+  MANAGER
+  HR
+  EXECUTIVE
+}
+enum Status {
+  TODO
+  PROGRESS
+  BLOCKED
+  DONE
+}
+model User {
+  id            String         @id @default(cuid())
+  name          String?
+  email         String?        @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role           @default(EMPLOYEE)
+  title         String?
+  dept          String?
+  city          String?
+  joinedAt      DateTime       @default(now())
+  onLeave       Boolean        @default(false)
+  accounts      Account[]
+  sessions      Session[]
+  tasks         Task[]
+  leave         LeaveRequest[]
+  activity      Activity[]
+}
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+  @@unique([identifier, token])
+}
+model Project {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  sub       String
+  status    String
+  pct       Int
+  team      Int
+  lead      String
+  milestone String
+  deadline  DateTime
+  tasks     Task[]
+}
+model Task {
+  id         String   @id @default(cuid())
+  title      String
+  desc       String   @default("")
+  priority   String
+  due        DateTime
+  status     Status   @default(TODO)
+  progress   Int      @default(0)
+  reason     String?
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assigneeId String?
+  assignee   User?    @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  @@index([assigneeId])
+}
+model Activity {
+  id     String   @id @default(cuid())
+  who    String
+  what   String
+  target String
+  at     DateTime @default(now())
+  userId String?
+  user   User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  @@index([userId])
+}
+model LeaveRequest {
+  id     String   @id @default(cuid())
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type   String
+  from   DateTime
+  to     DateTime
+  status String   @default("PENDING")
+}
+model Risk {
+  id     String @id @default(cuid())
+  level  String
+  title  String
+  detail String
+  dept   String
+  next   String
+}
+model Contract {
+  id   String   @id @default(cuid())
+  name String
+  due  DateTime
+  note String
+}
+model Revenue {
+  id       String @id @default(cuid())
+  month    String
+  product  Int
+  services Int
+  sales    Int
+  order    Int
+}
