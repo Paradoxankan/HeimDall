@@ -9,35 +9,35 @@ export async function getMe(){
  return db.user.findUnique({
   where:{id},
   include:{
-   memberships:{
-    include:{company:true},
-    orderBy:{joinedAt:'asc'}
+   membership:{
+    include:{organization:true}
    }
   }
  })
 }
 
-export type MeWithMemberships = NonNullable<Awaited<ReturnType<typeof getMe>>>
+export type MeWithMembership = NonNullable<Awaited<ReturnType<typeof getMe>>>
 
-export function getActiveContext(me: MeWithMemberships){
- if(me.activeCompanyId){
-  const mem=me.memberships.find(m=>m.companyId===me.activeCompanyId)
-  if(mem){
-   return {
-    isPersonal:false,
-    company:mem.company,
-    companyId:mem.companyId,
-    role:mem.role,
-    membership:mem
-   }
+export function getActiveContext(me: MeWithMembership){
+ if(me.membership){
+  return {
+   isPersonal:false,
+   organization:me.membership.organization,
+   organizationId:me.membership.organizationId,
+   role:me.membership.role,
+   membership:me.membership,
+   company:me.membership.organization,
+   companyId:me.membership.organizationId
   }
  }
  return {
   isPersonal:true,
+  organization:null,
+  organizationId:null,
+  role:'EMPLOYEE' as Role,
+  membership:null,
   company:null,
-  companyId:null,
-  role:(me.role||'EMPLOYEE') as Role,
-  membership:null
+  companyId:null
  }
 }
 
