@@ -55,7 +55,7 @@ export function WorkspaceProvider({children}:{children:ReactNode}){
    if(!r.ok)return setS({ready:true,me:null,workspace:null,data:null})
    const j=await r.json()
    setS({ready:true,me:j.me,workspace:j.workspace,data:j.data})
-   setView(v=>v&&ALLOWED[j.me.role]?.includes(v)?v:j.me.role.toLowerCase())
+   setView(v=>v&&ALLOWED[j.me.role]?.includes(v)?v:ALLOWED[j.me.role]?.[0]||j.me.role.toLowerCase())
   }catch{
    setS({ready:true,me:null,workspace:null,data:null})
   }
@@ -107,6 +107,13 @@ export function WorkspaceProvider({children}:{children:ReactNode}){
  const inviteMember=(b:any)=>run('invite-member',null,()=>call('/api/orgs/members/invite','POST',b))
  const removeMember=(id:string)=>run('remove-member-'+id,null,()=>call(`/api/orgs/members/${id}`,'DELETE'))
 
+ const changeRole=(newRole:string)=>{
+  if(!s.me?.role)return setView(newRole)
+  if(ALLOWED[s.me.role]?.includes(newRole)){
+   setView(newRole)
+  }
+ }
+
  return (
   <Ctx.Provider value={{
    ready:s.ready,
@@ -115,7 +122,7 @@ export function WorkspaceProvider({children}:{children:ReactNode}){
    data:s.data,
    tasks:s.data?.tasks||[],
    role:view,
-   setRole:setView,
+   setRole:changeRole,
    theme,
    toggleTheme,
    busy,

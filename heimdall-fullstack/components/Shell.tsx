@@ -3,7 +3,7 @@ import {useState,ReactNode} from 'react'
 import {useRouter} from 'next/navigation'
 import {Sun,Moon,Menu,Settings,LogOut,Building,User,Plus,Check,X,Mail} from 'lucide-react'
 import {signOut} from 'next-auth/react'
-import {useWs,ROLES,ALLOWED} from '@/lib/store'
+import {useWs,ROLES,ALLOWED,VIEW_NAMES} from '@/lib/store'
 import {Empty,Chip} from './ui'
 import {PeopleView} from './PeopleView'
 
@@ -142,13 +142,14 @@ export default function Shell({children}:{children:ReactNode}){
      <Menu size={20}/>
     </button>
 
-    <div className="hidden items-center gap-2 sm:flex">
-     <span className="font-medium">
-      {workspace?.isPersonal?'Personal Workspace':workspace?.activeCompany?.name}
+    <div className="flex items-center gap-2 min-w-0">
+     <Building size={16} className="text-accent shrink-0 hidden sm:block"/>
+     <span className="font-semibold text-ink truncate text-sm">
+      {workspace?.isPersonal?'Personal Workspace':(workspace?.activeCompany?.name||'Organization')}
      </span>
-     <span className="text-mute">/</span>
-     <span className="text-mute">
-      {workspace?.isPersonal?'Individual':(ROLES[role]||role)+' dashboard'}
+     <span className="text-mute hidden sm:inline">/</span>
+     <span className="text-xs text-mute hidden sm:inline capitalize">
+      {workspace?.isPersonal?'Individual':(VIEW_NAMES[role]||`${ROLES[role]||role} View`)}
      </span>
     </div>
 
@@ -167,18 +168,34 @@ export default function Shell({children}:{children:ReactNode}){
       <option value="__create__">+ Company</option>
      </select>
 
-     {/* Role view switcher within current company */}
+     {/* Allowed views switcher within current company */}
      {!workspace?.isPersonal&&ALLOWED[me?.role]&&(
-      <select
-       aria-label="Switch dashboard"
-       className="field py-1 text-xs sm:text-sm"
-       value={role}
-       onChange={e=>setRole(e.target.value)}
-      >
-       {ALLOWED[me.role].map((k:string)=>(
-        <option key={k} value={k}>{ROLES[k]}</option>
-       ))}
-      </select>
+      ALLOWED[me.role].length>1?(
+       <div className="flex items-center gap-1.5">
+        <label htmlFor="view-switcher" className="hidden text-xs text-mute lg:inline">
+         View:
+        </label>
+        <select
+         id="view-switcher"
+         aria-label="Switch dashboard view"
+         className="field py-1 text-xs"
+         value={role}
+         onChange={e=>setRole(e.target.value)}
+        >
+         {ALLOWED[me.role].map((k:string)=>(
+          <option key={k} value={k}>
+           {VIEW_NAMES[k]||ROLES[k]}
+          </option>
+         ))}
+        </select>
+       </div>
+      ):(
+       <div className="flex items-center">
+        <Chip tone="mute">
+         {VIEW_NAMES[ALLOWED[me.role][0]]||ROLES[me.role.toLowerCase()]||'Employee View'}
+        </Chip>
+       </div>
+      )
      )}
 
      <button onClick={toggleTheme} aria-label="Toggle theme" className="rounded-md border border-line p-2 hover:bg-surface">
