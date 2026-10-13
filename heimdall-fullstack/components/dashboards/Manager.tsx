@@ -32,18 +32,22 @@ export function Manager(){
    <div className="grid gap-4 lg:grid-cols-3">
     <div className="space-y-4 lg:col-span-2">
      <Card title="Workload by status">
-      <div className="flex h-44 items-end gap-6 px-2">
-       {counts.map(c=>(
-        <div key={c.k} className="flex h-full flex-1 flex-col justify-end text-center">
-         <span className="mb-1 font-semibold">{c.n}</span>
-         <div
-          className="rounded-t"
-          style={{height:`${c.n/max*80}%`,minHeight:c.n?4:2,background:`var(--${ST[c.k][1]})`,transition:'height .4s ease'}}
-         />
-         <span className="mt-2 text-xs text-mute">{ST[c.k][0]}</span>
-        </div>
-       ))}
-      </div>
+      {taskList.length>0?(
+       <div className="flex h-44 items-end gap-6 px-2">
+        {counts.map(c=>(
+         <div key={c.k} className="flex h-full flex-1 flex-col justify-end text-center">
+          <span className="mb-1 font-semibold">{c.n}</span>
+          <div
+           className="rounded-t"
+           style={{height:`${c.n/max*80}%`,minHeight:c.n?4:2,background:`var(--${ST[c.k][1]})`,transition:'height .4s ease'}}
+          />
+          <span className="mt-2 text-xs text-mute">{ST[c.k][0]}</span>
+         </div>
+        ))}
+       </div>
+      ):(
+       <Empty title="No tasks tracked" hint="Create or assign tasks across your organization to see team workload distribution."/>
+      )}
      </Card>
 
      <Card title="Active projects">

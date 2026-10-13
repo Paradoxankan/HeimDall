@@ -1,6 +1,7 @@
 'use client'
 import {useState,useEffect,useCallback} from 'react'
 import {useRouter} from 'next/navigation'
+import Link from 'next/link'
 import {signOut} from 'next-auth/react'
 import {
  Building,
@@ -184,16 +185,19 @@ export default function HomePage(){
 
  const handleCreateCompany=async()=>{
   const e:any={}
-  if(createCoForm.name.trim().length<2)e.name='Company name must be at least 2 characters.'
+  const trimmedName=createCoForm.name.trim()
+  if(trimmedName.length<3||trimmedName.length>60)e.name='Company name must be between 3 and 60 characters.'
   setCreateCoErr(e)
   if(Object.keys(e).length)return
 
+  const slug=createCoForm.slug.trim()||trimmedName.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')
+
   setIsCreatingCo(true)
   try{
-   const r=await fetch('/api/companies',{
+   const r=await fetch('/api/orgs',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(createCoForm)
+    body:JSON.stringify({name:trimmedName,slug})
    })
    const j=await r.json()
    if(!r.ok){
@@ -212,7 +216,7 @@ export default function HomePage(){
  const handleAcceptInvite=async(token:string)=>{
   setInvBusy(b=>({...b,[token]:true}))
   try{
-   const r=await fetch(`/api/invitations/${token}`,{method:'POST'})
+   const r=await fetch(`/api/invitations/${token}/accept`,{method:'POST'})
    const j=await r.json()
    if(r.ok){
     await reload()
@@ -226,7 +230,7 @@ export default function HomePage(){
  const handleDeclineInvite=async(token:string)=>{
   setInvBusy(b=>({...b,[token]:true}))
   try{
-   const r=await fetch(`/api/invitations/${token}`,{method:'DELETE'})
+   const r=await fetch(`/api/invitations/${token}/decline`,{method:'POST'})
    if(r.ok){
     setInvitations(prev=>prev.filter(i=>i.token!==token))
    }
@@ -638,13 +642,22 @@ export default function HomePage(){
 
         {createCoErr.form&&<p className="text-xs text-bad">{createCoErr.form}</p>}
 
-        <button
-         onClick={handleCreateCompany}
-         disabled={isCreatingCo}
-         className="w-full rounded-md bg-accent py-2 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60 dark:text-[#07101f]"
-        >
-         {isCreatingCo?'Creating organization...':'Create Company'}
-        </button>
+        <div className="flex flex-col gap-2 pt-1">
+         <button
+          onClick={handleCreateCompany}
+          disabled={isCreatingCo}
+          className="w-full rounded-md bg-accent py-2 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60 dark:text-[#07101f]"
+         >
+          {isCreatingCo?'Creating organization...':'Create Company'}
+         </button>
+         <Link
+          href="/create-company"
+          className="flex items-center justify-center gap-1 py-1 text-xs text-mute hover:text-ink"
+         >
+          <span>Or open dedicated setup page</span>
+          <ArrowRight size={12}/>
+         </Link>
+        </div>
        </div>
       </Card>
 

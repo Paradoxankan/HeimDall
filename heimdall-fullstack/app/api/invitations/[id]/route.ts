@@ -3,10 +3,10 @@ import {getContext,bad} from '@/lib/guard'
 
 export const dynamic='force-dynamic'
 
-export async function GET(_:Request,{params}:{params:Promise<{token:string}>}){
- const {token}=await params
- const invite=await db.invitation.findUnique({
-  where:{token},
+export async function GET(_:Request,{params}:{params:Promise<{id:string}>}){
+ const {id}=await params
+ const invite=await db.invitation.findFirst({
+  where:{OR:[{id},{token:id}]},
   include:{organization:{select:{name:true,slug:true}},invitedBy:{select:{name:true,email:true}}}
  })
  if(!invite)return bad('Invitation not found',404)
@@ -29,12 +29,12 @@ export async function GET(_:Request,{params}:{params:Promise<{token:string}>}){
  })
 }
 
-export async function POST(_:Request,{params}:{params:Promise<{token:string}>}){
- const {token}=await params
+export async function POST(_:Request,{params}:{params:Promise<{id:string}>}){
+ const {id}=await params
  const ctx=await getContext();if(!ctx)return bad('Unauthorized',401)
  const {user,membership}=ctx
 
- const invite=await db.invitation.findUnique({where:{token},include:{organization:true}})
+ const invite=await db.invitation.findFirst({where:{OR:[{id},{token:id}]},include:{organization:true}})
  if(!invite)return bad('Invitation not found',404)
 
  if(invite.status!=='PENDING')return bad(`This invitation has already been ${invite.status.toLowerCase()}`,400)
@@ -70,19 +70,19 @@ export async function POST(_:Request,{params}:{params:Promise<{token:string}>}){
  return Response.json({success:true,company:result.company})
 }
 
-export async function DELETE(_:Request,{params}:{params:Promise<{token:string}>}){
- const {token}=await params
+export async function DELETE(_:Request,{params}:{params:Promise<{id:string}>}){
+ const {id}=await params
  const ctx=await getContext();if(!ctx)return bad('Unauthorized',401)
  const {user,membership}=ctx
 
- const invite=await db.invitation.findUnique({where:{token}})
+ const invite=await db.invitation.findFirst({where:{OR:[{id},{token:id}]}})
  if(!invite)return bad('Invitation not found',404)
 
  const isInvitedUser=Boolean(user.email&&invite.email.toLowerCase()===user.email.toLowerCase())
  const isOrgAdmin=Boolean(
   membership&&
   membership.organizationId===invite.organizationId&&
-  (membership.role==='EXECUTIVE'||membership.role==='HR')
+  (membership.role==='EXECUTIVE'||membership.role==='HR'||membership.role==='MANAGER')
  )
 
  if(!isInvitedUser&&!isOrgAdmin)return bad('Forbidden',403)
@@ -91,3 +91,4 @@ export async function DELETE(_:Request,{params}:{params:Promise<{token:string}>}
  await db.invitation.update({where:{id:invite.id},data:{status:newStatus}})
  return Response.json({success:true,status:newStatus})
 }
+

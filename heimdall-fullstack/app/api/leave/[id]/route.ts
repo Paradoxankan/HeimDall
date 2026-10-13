@@ -24,6 +24,9 @@ export async function DELETE(_:Request,{params}:{params:Promise<{id:string}>}){
  const {id}=await params,ctx=await getContext();if(!ctx)return bad('Unauthorized',401)
  const l=await db.leaveRequest.findUnique({where:{id}})
  if(!l||l.userId!==ctx.user.id)return bad('Leave request not found',404)
+ if(l.organizationId&&(!ctx.membership||l.organizationId!==ctx.membership.organizationId)){
+  return bad('Forbidden',403)
+ }
  if(l.status!=='PENDING')return bad('Only pending requests can be cancelled',409)
 
  await db.leaveRequest.delete({where:{id}})

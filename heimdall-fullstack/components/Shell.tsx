@@ -3,14 +3,15 @@ import {useState,ReactNode} from 'react'
 import {useRouter} from 'next/navigation'
 import {Sun,Moon,Menu,Settings,LogOut,Building,User,Plus,Check,X,Mail} from 'lucide-react'
 import {signOut} from 'next-auth/react'
-import {useWs,ROLES,ALLOWED} from '@/lib/store'
+import {useWs,ROLES,ALLOWED,VIEW_NAMES} from '@/lib/store'
 import {Empty,Chip} from './ui'
+import {PeopleView} from './PeopleView'
 
 const NAV:any={
  employee:['Overview','Tasks','Documents','Communication','Reports','Updates'],
- manager:['Overview','Department','Team','Projects','Contracts','Communication','Reports','Updates'],
- hr:['Overview','Team','Communication','Reports','Updates'],
- executive:['Overview','Department','Team','Projects','Contracts','Communication','Reports','Updates','HeimDall AI']
+ manager:['Overview','People','Projects','Contracts','Communication','Reports','Updates'],
+ hr:['Overview','People','Communication','Reports','Updates'],
+ executive:['Overview','People','Department','Projects','Contracts','Communication','Reports','Updates','HeimDall AI']
 }
 
 export default function Shell({children}:{children:ReactNode}){
@@ -40,11 +41,13 @@ export default function Shell({children}:{children:ReactNode}){
 
  const handleCreate=async()=>{
   const e:any={}
-  if(newCo.name.trim().length<2)e.name='Company name must be at least 2 characters.'
+  const trimmedName=newCo.name.trim()
+  if(trimmedName.length<3||trimmedName.length>60)e.name='Company name must be between 3 and 60 characters.'
   setFormErr(e)
   if(Object.keys(e).length)return
 
-  const res=await createCompany(newCo)
+  const slug=newCo.slug.trim()||trimmedName.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')
+  const res=await createCompany({name:trimmedName,slug})
   if(res.error){
    setFormErr({form:res.error})
   }else{
@@ -57,11 +60,11 @@ export default function Shell({children}:{children:ReactNode}){
 
  const handleWorkspaceChange=async(val:string)=>{
   if(val==='__create__'){
-   setShowCreateModal(true)
+   router.push('/create-company')
    return
   }
   if(val==='personal'){
-   await switchWorkspace(null)
+   router.push('/home')
   }else{
    await switchWorkspace(val)
   }
@@ -139,13 +142,14 @@ export default function Shell({children}:{children:ReactNode}){
      <Menu size={20}/>
     </button>
 
-    <div className="hidden items-center gap-2 sm:flex">
-     <span className="font-medium">
-      {workspace?.isPersonal?'Personal Workspace':workspace?.activeCompany?.name}
+    <div className="flex items-center gap-2 min-w-0">
+     <Building size={16} className="text-accent shrink-0 hidden sm:block"/>
+     <span className="font-semibold text-ink truncate text-sm">
+      {workspace?.isPersonal?'Personal Workspace':(workspace?.activeCompany?.name||'Organization')}
      </span>
-     <span className="text-mute">/</span>
-     <span className="text-mute">
-      {workspace?.isPersonal?'Individual':(ROLES[role]||role)+' dashboard'}
+     <span className="text-mute hidden sm:inline">/</span>
+     <span className="text-xs text-mute hidden sm:inline capitalize">
+      {workspace?.isPersonal?'Individual':(VIEW_NAMES[role]||`${ROLES[role]||role} View`)}
      </span>
     </div>
 
@@ -164,18 +168,34 @@ export default function Shell({children}:{children:ReactNode}){
       <option value="__create__">+ Company</option>
      </select>
 
-     {/* Role view switcher within current company */}
+     {/* Allowed views switcher within current company */}
      {!workspace?.isPersonal&&ALLOWED[me?.role]&&(
-      <select
-       aria-label="Switch dashboard"
-       className="field py-1 text-xs sm:text-sm"
-       value={role}
-       onChange={e=>setRole(e.target.value)}
-      >
-       {ALLOWED[me.role].map((k:string)=>(
-        <option key={k} value={k}>{ROLES[k]}</option>
-       ))}
-      </select>
+      ALLOWED[me.role].length>1?(
+       <div className="flex items-center gap-1.5">
+        <label htmlFor="view-switcher" className="hidden text-xs text-mute lg:inline">
+         View:
+        </label>
+        <select
+         id="view-switcher"
+         aria-label="Switch dashboard view"
+         className="field py-1 text-xs"
+         value={role}
+         onChange={e=>setRole(e.target.value)}
+        >
+         {ALLOWED[me.role].map((k:string)=>(
+          <option key={k} value={k}>
+           {VIEW_NAMES[k]||ROLES[k]}
+          </option>
+         ))}
+        </select>
+       </div>
+      ):(
+       <div className="flex items-center">
+        <Chip tone="mute">
+         {VIEW_NAMES[ALLOWED[me.role][0]]||ROLES[me.role.toLowerCase()]||'Employee View'}
+        </Chip>
+       </div>
+      )
      )}
 
      <button onClick={toggleTheme} aria-label="Toggle theme" className="rounded-md border border-line p-2 hover:bg-surface">
@@ -235,7 +255,9 @@ export default function Shell({children}:{children:ReactNode}){
    )}
 
    <main className="mx-auto max-w-6xl p-4 md:p-6">
-    {view==='Overview'?children:(
+    {view==='Overview'?children:view==='People'?(
+     <PeopleView/>
+    ):(
      <Empty dashed title={`${view} isn't part of this release`} hint="This section is planned for the next milestone. Your Overview is fully working."/>
     )}
    </main>

@@ -112,3 +112,17 @@ test('Permission Matrix: exec reports (risks, revenue, contracts)', () => {
  assert.equal(can(null, 'exec.reports'), false, 'Non-member cannot access exec reports')
 })
 
+test('Organization slug format validation', () => {
+ const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+ assert.equal(SLUG_RE.test('acme'), true, 'single word lowercase valid')
+ assert.equal(SLUG_RE.test('acme-corp'), true, 'hyphenated words valid')
+ assert.equal(SLUG_RE.test('acme-123-corp'), true, 'numbers and hyphens valid')
+ assert.equal(SLUG_RE.test('-acme'), false, 'leading hyphen invalid')
+ assert.equal(SLUG_RE.test('acme-'), false, 'trailing hyphen invalid')
+ assert.equal(SLUG_RE.test('acme--corp'), false, 'consecutive hyphens invalid')
+ assert.equal(SLUG_RE.test('Acme-Corp'), false, 'uppercase letters invalid')
+ assert.equal(SLUG_RE.test('acme corp'), false, 'spaces invalid')
+ assert.equal(SLUG_RE.test('acme_corp'), false, 'underscores invalid')
+})
+
+
