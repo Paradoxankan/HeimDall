@@ -3,7 +3,7 @@ import data from '../lib/data.json'
 const db=new PrismaClient(),base=Date.parse('2026-10-06'),now=Date.now()
 const shift=(d:string)=>new Date(now+(Date.parse(d)-base))
 // EDIT: use each person's real GitHub/Google primary email so their login links to this profile.
-const EMAIL:any={Ankan:'ankan@example.com',Sumit:'sumit@example.com',Debashis:'debashis@example.com',Swapnil:'swapnil@example.com',Anamitra:'anamitra@example.com'}
+const EMAIL:any={Ankan:'paradoxankan123@gmail.com',Sumit:'sumit@example.com',Debashis:'debashis@example.com',Swapnil:'swapnil@example.com',Anamitra:'anamitra@example.com'}
 const ROLE:any={Ankan:'EXECUTIVE',Sumit:'MANAGER',Debashis:'HR',Swapnil:'EMPLOYEE',Anamitra:'EMPLOYEE'}
 async function main(){
  for(const m of [db.task,db.activity,db.leaveRequest,db.risk,db.contract,db.revenue,db.project])await (m as any).deleteMany()
