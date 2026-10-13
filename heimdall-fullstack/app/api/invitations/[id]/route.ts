@@ -91,3 +91,4 @@ export async function DELETE(_:Request,{params}:{params:Promise<{id:string}>}){
  await db.invitation.update({where:{id:invite.id},data:{status:newStatus}})
  return Response.json({success:true,status:newStatus})
 }
+

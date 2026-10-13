@@ -42,3 +42,4 @@ export async function DELETE(_:Request,{params}:{params:Promise<{id:string}>}){
 
  return Response.json({success:true,message:'Member removed successfully'})
 }
+

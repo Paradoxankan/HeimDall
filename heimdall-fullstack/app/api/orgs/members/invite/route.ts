@@ -84,3 +84,4 @@ export async function POST(req:Request){
   invitedBy:invite.invitedBy?.name||invite.invitedBy?.email||'Team lead'
  },{status:201})
 }
+

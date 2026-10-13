@@ -1,6 +1,7 @@
 'use client'
-import {useState} from 'react'
+import {useState,useEffect} from 'react'
 import {useWs,first,days,fmt,due,ago} from '@/lib/store'
+import {can} from '@/lib/permissions'
 import {Card,Chip,Empty,Stat,Bar,Head} from '../ui'
 import AIWidget from '../AIWidget'
 import {ST,PR,Th,Updates,Projects} from './shared'
@@ -11,7 +12,7 @@ export function InviteMemberForm(){
  const callerRole=me?.role
  const allowedRoles=(['HR','MANAGER','EMPLOYEE'] as const).filter(r=>can(callerRole,'member.invite',r))
 
- const [f,setF]=useState({email:'',role:allowedRoles[0]||'EMPLOYEE'})
+ const [f,setF]=useState<{email:string,role:'HR'|'MANAGER'|'EMPLOYEE'}>({email:'',role:allowedRoles[0]||'EMPLOYEE'})
  const [err,setErr]=useState<any>({})
  const [sent,setSent]=useState(false)
 
@@ -58,7 +59,7 @@ export function InviteMemberForm(){
      <select
       className="field mt-1 w-full"
       value={f.role}
-      onChange={e=>setF({...f,role:e.target.value})}
+      onChange={e=>setF({...f,role:e.target.value as 'HR'|'MANAGER'|'EMPLOYEE'})}
      >
       {allowedRoles.map(r=>(
        <option key={r} value={r}>
