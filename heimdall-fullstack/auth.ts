@@ -8,7 +8,7 @@ export const {handlers,auth,signIn,signOut}=NextAuth({
  adapter:PrismaAdapter(db),
  session:{strategy:'jwt'},
  providers:[
-  GitHub({allowDangerousEmailAccountLinking:true}),
+  GitHub({allowDangerousEmailAccountLinking:true,issuer:'https://github.com/login/oauth'}),
   Google({allowDangerousEmailAccountLinking:true})
  ],
  callbacks:{
