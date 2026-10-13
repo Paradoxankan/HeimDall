@@ -15,15 +15,15 @@ Companies often manage important information across spreadsheets, chat messages,
 | | |
 |---|---|
 | 🌐 **Live demo** | https://heimdall-hazel.vercel.app/ |
-
+|💻 Repository	|https://github.com/Sumit10Sinha/HeimDall |
 ---
 
 ## Previews
 
 | | Light | Dark |
 |---|---|---|
-| **Mobile (375px)** | ![Mobile light](docs/screenshots/mobile-light.png) | ![Mobile dark](docs/screenshots/mobile-dark.png) |
-| **Desktop (1280px)** | ![Desktop light](docs/screenshots/desktop-light.png) | ![Desktop dark](docs/screenshots/desktop-dark.png) |
+| **Mobile (375px)** | <img src="assets/mobile-light.jpeg" width="220"> | <img src="assets/mobile-dark.jpeg" width="220"> |
+| **Desktop (1280px)** | <img src="assets/desktop-light.png" width="420"> | <img src="assets/desktop-dark.png" width="420"> |
 
 ---
 
@@ -49,15 +49,6 @@ HeimDall brings a company's day-to-day work into one workspace. The landing page
 
 ---
 
-## Sketch
-
-<!-- Excalidraw only. Link the live board AND embed/link a static export as backup. -->
-
-![Sketch](./sketches)
-
-[View live board (Excalidraw)](https://excalidraw.com/#json=wLM3da9J0HQDwyx_gAEGR,qaLlLSxaOpqr-dwqwuVeyQ)
-
----
 
 ## Documents
 
@@ -66,6 +57,7 @@ HeimDall brings a company's day-to-day work into one workspace. The landing page
 - [API Spec](./HeimDall_API_Spec.md)
 - [Roadmap](./HeimDall_Roadmap.md)
 - [Requirements](./HeimDall_Requirements.md)
+- [Sketch](./sketches)
 
 ---
 
@@ -77,7 +69,7 @@ HeimDall brings a company's day-to-day work into one workspace. The landing page
 | Language | TypeScript | Strict type-checking |
 | Styling | Tailwind CSS v4 | Responsive, utility-first design |
 | State management | React Context API & `localStorage` | Session and data state that survives refreshes without a backend |
-| Data source | Local `mockData.json` | User profiles, tasks, contracts and projects |
+| Data source | Local `data.json` | User profiles, tasks, contracts and projects |
 | Deployment | Vercel | Hosts the production build |
 
 ---
@@ -104,7 +96,7 @@ Open **http://localhost:3000** in your browser.
 
 ## Environment Variables
 
-None required for this MVP phase.
+None required for this phase.
 
 | Variable | Description |
 |---|---|
@@ -134,7 +126,7 @@ None required for this MVP phase.
 
 ### Data source
 
-The whole app is powered by a local **`mockData.json`**. The dashboards read, map and render user profiles, task lists, contracts and projects directly from it.
+The whole app is powered by a local **`data.json`**. The dashboards read, map and render user profiles, task lists, contracts and projects directly from it.
 
 ### Empty state
 
@@ -160,7 +152,7 @@ Layouts adapt from mobile (375px) to desktop (1280px), with a dual-button dark/l
 
 ---
 
-## What I'm Building Toward
+## What We're Building Toward
 
 **Kenshi (frontend):** A complete visual prototype of HeimDall with the main company workspace, dashboard, people management, projects, tasks, contracts, obligations, documents, notifications, reports, and contract-focused AI interface. The frontend will demonstrate the complete user journey and how different parts of the platform connect, even before a backend exists.
 
