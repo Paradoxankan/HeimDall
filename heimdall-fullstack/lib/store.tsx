@@ -2,7 +2,18 @@
 import {createContext,useContext,useEffect,useState,useCallback,ReactNode} from 'react'
 
 export const ROLES:any={employee:'Employee',manager:'Manager',hr:'HR',executive:'Executive'}
-export const ALLOWED:any={EMPLOYEE:['employee'],MANAGER:['employee','manager'],HR:['employee','hr'],EXECUTIVE:['employee','manager','hr','executive']}
+export const ALLOWED:Record<string,string[]>={
+ EMPLOYEE:['employee'],
+ MANAGER:['manager','employee'],
+ HR:['hr','employee'],
+ EXECUTIVE:['executive','manager','hr','employee']
+}
+export const VIEW_NAMES:Record<string,string>={
+ executive:'Executive View',
+ manager:'Manager View',
+ hr:'HR View',
+ employee:'Employee View'
+}
 export const first=(n:string)=>(n||'there').split(' ')[0]
 export const days=(d:string)=>Math.round((Date.parse(d)-Date.parse(new Date().toISOString().slice(0,10)))/864e5)
 export const fmt=(d:string)=>new Date(d+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'})
