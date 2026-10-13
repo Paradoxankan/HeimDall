@@ -216,7 +216,7 @@ export default function HomePage(){
  const handleAcceptInvite=async(token:string)=>{
   setInvBusy(b=>({...b,[token]:true}))
   try{
-   const r=await fetch(`/api/invitations/${token}`,{method:'POST'})
+   const r=await fetch(`/api/invitations/${token}/accept`,{method:'POST'})
    const j=await r.json()
    if(r.ok){
     await reload()
@@ -230,7 +230,7 @@ export default function HomePage(){
  const handleDeclineInvite=async(token:string)=>{
   setInvBusy(b=>({...b,[token]:true}))
   try{
-   const r=await fetch(`/api/invitations/${token}`,{method:'DELETE'})
+   const r=await fetch(`/api/invitations/${token}/decline`,{method:'POST'})
    if(r.ok){
     setInvitations(prev=>prev.filter(i=>i.token!==token))
    }

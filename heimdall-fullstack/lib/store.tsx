@@ -90,9 +90,11 @@ export function WorkspaceProvider({children}:{children:ReactNode}){
  const decideLeave=(id:string,decision:string)=>run(id,d=>({...d,leave:d.leave.filter((l:any)=>l.id!==id)}),()=>call(`/api/leave/${id}`,'PATCH',{decision}))
  const switchWorkspace=(companyId:string|null)=>run('switch-ws',null,()=>call('/api/companies/switch','POST',{companyId}))
  const createCompany=(b:any)=>run('create-co',null,()=>call('/api/orgs','POST',b))
- const acceptInvitation=(token:string)=>run('accept-inv-'+token,null,()=>call(`/api/invitations/${token}`,'POST'))
- const declineInvitation=(token:string)=>run('decline-inv-'+token,null,()=>call(`/api/invitations/${token}`,'DELETE'))
- const inviteMember=(b:any)=>run('invite-member',null,()=>call('/api/invitations','POST',b))
+ const acceptInvitation=(token:string)=>run('accept-inv-'+token,null,()=>call(`/api/invitations/${token}/accept`,'POST'))
+ const declineInvitation=(token:string)=>run('decline-inv-'+token,null,()=>call(`/api/invitations/${token}/decline`,'POST'))
+ const revokeInvitation=(token:string)=>run('revoke-inv-'+token,null,()=>call(`/api/invitations/${token}/revoke`,'POST'))
+ const inviteMember=(b:any)=>run('invite-member',null,()=>call('/api/orgs/members/invite','POST',b))
+ const removeMember=(id:string)=>run('remove-member-'+id,null,()=>call(`/api/orgs/members/${id}`,'DELETE'))
 
  return (
   <Ctx.Provider value={{
@@ -118,7 +120,9 @@ export function WorkspaceProvider({children}:{children:ReactNode}){
    createCompany,
    acceptInvitation,
    declineInvitation,
+   revokeInvitation,
    inviteMember,
+   removeMember,
    reload:load
   }}>
    {children}
