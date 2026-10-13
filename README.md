@@ -14,7 +14,7 @@ Companies often manage important information across spreadsheets, chat messages,
 
 | | |
 |---|---|
-| 🌐 **Live demo** | https://heimdall-hazel.vercel.app/ |
+| 🌐 **Live demo** | https://heim-dall-10.vercel.app/ |
 |💻 Repository	|https://github.com/Sumit10Sinha/HeimDall |
 ---
 
