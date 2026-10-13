@@ -57,11 +57,11 @@ export default function Shell({children}:{children:ReactNode}){
 
  const handleWorkspaceChange=async(val:string)=>{
   if(val==='__create__'){
-   setShowCreateModal(true)
+   router.push('/create-company')
    return
   }
   if(val==='personal'){
-   await switchWorkspace(null)
+   router.push('/home')
   }else{
    await switchWorkspace(val)
   }

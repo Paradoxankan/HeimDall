@@ -26,6 +26,13 @@ export function Executive(){
     sub={`${workspace?.activeCompany?.name||'Company'} overview as of ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}.`}
    />
 
+   <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <Stat label="Team members" value={(data?.people||[]).length}/>
+    <Stat label="Active projects" value={(data?.projects||[]).length}/>
+    <Stat label="Open tasks" value={(tasks||[]).filter((t:any)=>t.status!=='done').length}/>
+    <Stat label="Compliance" value={`${e.compliance}%`}/>
+   </div>
+
    <div className="grid gap-4 lg:grid-cols-3">
     <div className="space-y-4 lg:col-span-2">
      <Card title="Weekly company summary" action={<Chip tone="accent">AI generated</Chip>}>
@@ -35,6 +42,44 @@ export function Executive(){
        </ul>
       ):(
        <Empty title="No summary generated yet" hint="HeimDall AI will generate weekly company summaries as work and contracts progress."/>
+      )}
+     </Card>
+
+     <Projects/>
+
+     <Card
+      title="Company tasks"
+      action={(tasks||[]).length>0?<Chip tone="accent">{(tasks||[]).length} total</Chip>:undefined}
+     >
+      {(tasks||[]).length?(
+       <div className="-m-4 overflow-x-auto">
+        <table className="w-full">
+         <thead>
+          <tr className="border-b border-line">
+           <Th c="Task"/><Th c="Assignee"/><Th c="Priority"/><Th c="Due"/><Th c="Status"/>
+          </tr>
+         </thead>
+         <tbody>
+          {(tasks||[]).slice(0,5).map((t:any)=>{
+           const [d,tone]=due(t.due)
+           return (
+            <tr key={t.id} className="border-b border-line last:border-0">
+             <td className="px-3 py-2.5 font-medium">{t.title}</td>
+             <td className="px-3 text-xs text-mute">{t.assignee}</td>
+             <td className="px-3"><Chip tone={PR[t.priority]}>{t.priority}</Chip></td>
+             <td className="px-3"><Chip tone={tone as string}>{d}</Chip></td>
+             <td className="px-3"><Chip tone={ST[t.status]?.[1]||'mute'}>{ST[t.status]?.[0]||t.status}</Chip></td>
+            </tr>
+           )
+          })}
+         </tbody>
+        </table>
+       </div>
+      ):(
+       <Empty
+        title="No tasks yet"
+        hint="No company tasks have been created. Switch to Manager or Employee view to add tasks, or assign them to team members."
+       />
       )}
      </Card>
 
@@ -89,6 +134,43 @@ export function Executive(){
       </Card>
      </div>
 
+     <Card
+      title="Team members"
+      action={
+       <Chip tone="mute">
+        {(data?.people||[]).length} {(data?.people||[]).length===1?'member':'members'}
+       </Chip>
+      }
+     >
+      {(data?.people||[]).length>1?(
+       <div className="-m-4 overflow-x-auto">
+        <table className="w-full">
+         <thead>
+          <tr className="border-b border-line">
+           <Th c="Name"/><Th c="Role"/><Th c="Department"/><Th c="Access"/><Th c="Joined"/>
+          </tr>
+         </thead>
+         <tbody>
+          {(data?.people||[]).map((p:any)=>(
+           <tr key={p.name} className="border-b border-line last:border-0">
+            <td className="px-3 py-2.5 font-medium">{p.name}</td>
+            <td className="px-3 text-xs text-mute">{p.role}</td>
+            <td className="px-3 text-xs text-mute">{p.dept}</td>
+            <td className="px-3"><Chip tone={p.access==='EXECUTIVE'?'accent':'mute'}>{p.access}</Chip></td>
+            <td className="px-3 text-xs text-mute">{fmt(p.joined)}</td>
+           </tr>
+          ))}
+         </tbody>
+        </table>
+       </div>
+      ):(
+       <Empty
+        title="No team members yet"
+        hint="You are currently the only member in this company. Invite colleagues using the form below to collaborate."
+       />
+      )}
+     </Card>
+
      <InviteMemberForm/>
     </div>
 
@@ -132,6 +214,8 @@ export function Executive(){
        <Empty title="No revenue data" hint="Financial records recorded by your finance team will appear here."/>
       )}
      </Card>
+
+     <Updates/>
 
      <AIWidget/>
     </div>
