@@ -1,5 +1,5 @@
 import {db} from '@/lib/db'
-import {getMe,bad} from '@/lib/guard'
+import {getContext,bad} from '@/lib/guard'
 
 export const dynamic='force-dynamic'
 
@@ -31,7 +31,9 @@ export async function GET(_:Request,{params}:{params:Promise<{token:string}>}){
 
 export async function POST(_:Request,{params}:{params:Promise<{token:string}>}){
  const {token}=await params
- const me=await getMe();if(!me)return bad('Unauthorized',401)
+ const ctx=await getContext();if(!ctx)return bad('Unauthorized',401)
+ const {user,membership}=ctx
+
  const invite=await db.invitation.findUnique({where:{token},include:{organization:true}})
  if(!invite)return bad('Invitation not found',404)
 
@@ -41,11 +43,11 @@ export async function POST(_:Request,{params}:{params:Promise<{token:string}>}){
   return bad('This invitation has expired',410)
  }
 
- if(!me.email||invite.email.toLowerCase()!==me.email.toLowerCase()){
-  return bad(`This invitation is intended for ${invite.email}. You are signed in as ${me.email||'another account'}.`,403)
+ if(!user.email||invite.email.toLowerCase()!==user.email.toLowerCase()){
+  return bad(`This invitation is intended for ${invite.email}. You are signed in as ${user.email||'another account'}.`,403)
  }
 
- if(me.membership){
+ if(membership){
   return bad('You already belong to an organization. A user may belong to only one organization at a time.',409)
  }
 
@@ -53,7 +55,7 @@ export async function POST(_:Request,{params}:{params:Promise<{token:string}>}){
   const member=await tx.membership.create({
    data:{
     organizationId:invite.organizationId,
-    userId:me.id,
+    userId:user.id,
     role:invite.role,
     addedById:invite.invitedById
    }
@@ -70,15 +72,17 @@ export async function POST(_:Request,{params}:{params:Promise<{token:string}>}){
 
 export async function DELETE(_:Request,{params}:{params:Promise<{token:string}>}){
  const {token}=await params
- const me=await getMe();if(!me)return bad('Unauthorized',401)
+ const ctx=await getContext();if(!ctx)return bad('Unauthorized',401)
+ const {user,membership}=ctx
+
  const invite=await db.invitation.findUnique({where:{token}})
  if(!invite)return bad('Invitation not found',404)
 
- const isInvitedUser=Boolean(me.email&&invite.email.toLowerCase()===me.email.toLowerCase())
+ const isInvitedUser=Boolean(user.email&&invite.email.toLowerCase()===user.email.toLowerCase())
  const isOrgAdmin=Boolean(
-  me.membership&&
-  me.membership.organizationId===invite.organizationId&&
-  (me.membership.role==='EXECUTIVE'||me.membership.role==='HR')
+  membership&&
+  membership.organizationId===invite.organizationId&&
+  (membership.role==='EXECUTIVE'||membership.role==='HR')
  )
 
  if(!isInvitedUser&&!isOrgAdmin)return bad('Forbidden',403)

@@ -1,30 +1,32 @@
 import {db} from '@/lib/db'
-import {getMe,bad} from '@/lib/guard'
+import {getContext,bad} from '@/lib/guard'
 
 export const dynamic='force-dynamic'
 
 const slugify=(s:string)=>s.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')
 
 export async function GET(){
- const me=await getMe();if(!me)return bad('Unauthorized',401)
- const pendingInvites=me.email
+ const ctx=await getContext();if(!ctx)return bad('Unauthorized',401)
+ const {user,membership}=ctx
+
+ const pendingInvites=user.email
   ? await db.invitation.findMany({
-      where:{email:me.email.toLowerCase(),status:'PENDING'},
+      where:{email:user.email.toLowerCase(),status:'PENDING'},
       include:{organization:true,invitedBy:{select:{name:true,email:true}}},
       orderBy:{createdAt:'desc'}
     })
   : []
 
- const currentOrg=me.membership?.organization
+ const currentOrg=membership?.organization
  return Response.json({
   activeCompanyId:currentOrg?.id||null,
   companies:currentOrg?[{
    id:currentOrg.id,
    name:currentOrg.name,
    slug:currentOrg.slug,
-   role:me.membership?.role,
-   title:me.title,
-   joinedAt:me.membership?.createdAt
+   role:membership.role,
+   title:user.title,
+   joinedAt:membership.createdAt
   }]:[],
   invitations:pendingInvites.map(i=>({
    id:i.id,
@@ -39,8 +41,9 @@ export async function GET(){
 }
 
 export async function POST(req:Request){
- const me=await getMe();if(!me)return bad('Unauthorized',401)
- if(me.membership)return bad('A user may belong to only one organization at a time',409)
+ const ctx=await getContext();if(!ctx)return bad('Unauthorized',401)
+ const {user,membership}=ctx
+ if(membership)return bad('A user may belong to only one organization at a time',409)
 
  const b=await req.json().catch(()=>null);if(!b)return bad('Invalid JSON body',400)
  const name=String(b.name||'').trim()
@@ -58,21 +61,21 @@ export async function POST(req:Request){
    data:{
     name,
     slug,
-    createdById:me.id,
+    createdById:user.id,
     plan:'STARTER'
    }
   })
-  const membership=await tx.membership.create({
+  const newMembership=await tx.membership.create({
    data:{
     organizationId:organization.id,
-    userId:me.id,
+    userId:user.id,
     role:'EXECUTIVE'
    }
   })
   if(b.title&&String(b.title).trim()){
-   await tx.user.update({where:{id:me.id},data:{title:String(b.title).trim().slice(0,60)}})
+   await tx.user.update({where:{id:user.id},data:{title:String(b.title).trim().slice(0,60)}})
   }
-  return {company:organization,membership}
+  return {company:organization,membership:newMembership}
  })
 
  return Response.json(result,{status:201})

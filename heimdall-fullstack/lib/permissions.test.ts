@@ -111,3 +111,4 @@ test('Permission Matrix: exec reports (risks, revenue, contracts)', () => {
  assert.equal(can('EMPLOYEE', 'exec.reports'), false, 'EMPLOYEE cannot access exec reports')
  assert.equal(can(null, 'exec.reports'), false, 'Non-member cannot access exec reports')
 })
+
