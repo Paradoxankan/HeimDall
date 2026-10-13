@@ -1,16 +1,17 @@
 import {db} from '@/lib/db'
-import {getMe,bad,getActiveContext} from '@/lib/guard'
-
-const wideRole=(r:string)=>r==='MANAGER'||r==='EXECUTIVE'
+import {getContext,bad,can} from '@/lib/guard'
 
 export async function GET(){
- const me=await getMe();if(!me)return bad('Unauthorized',401)
- const ctx=getActiveContext(me)
- const where=ctx.isPersonal
-  ? {ownerId:me.id,organizationId:null}
-  : wideRole(ctx.role)
-  ? {organizationId:ctx.organizationId!}
-  : {organizationId:ctx.organizationId!,OR:[{assigneeId:me.id},{ownerId:me.id}]}
+ const ctx=await getContext();if(!ctx)return bad('Unauthorized',401)
+ const isPersonal=!ctx.membership
+ const orgId=ctx.membership?.organizationId
+ const role=ctx.membership?.role
+
+ const where=isPersonal
+  ? {ownerId:ctx.user.id,organizationId:null}
+  : role==='MANAGER'||role==='EXECUTIVE'
+  ? {organizationId:orgId!}
+  : {organizationId:orgId!,OR:[{assigneeId:ctx.user.id},{ownerId:ctx.user.id}]}
 
  const t=await db.task.findMany({where,include:{project:true,assignee:true,owner:true},orderBy:{due:'asc'}})
  return Response.json(t.map(x=>({
@@ -27,8 +28,7 @@ export async function GET(){
 }
 
 export async function POST(req:Request){
- const me=await getMe();if(!me)return bad('Unauthorized',401)
- const ctx=getActiveContext(me)
+ const ctx=await getContext();if(!ctx)return bad('Unauthorized',401)
  const b=await req.json().catch(()=>null);if(!b)return bad('Invalid JSON body',400)
 
  const title=String(b.title||'').trim()
@@ -37,26 +37,29 @@ export async function POST(req:Request){
  const due=new Date(b.due)
  if(isNaN(+due))return bad('A valid due date is required',400)
 
+ const isPersonal=!ctx.membership
+ const orgId=ctx.membership?.organizationId
+
  let projectId:string|null=null
- if(!ctx.isPersonal){
+ if(!isPersonal&&orgId){
   if(b.projectId){
-   const found=await db.project.findFirst({where:{id:String(b.projectId),organizationId:ctx.organizationId!}})
+   const found=await db.project.findFirst({where:{id:String(b.projectId),organizationId:orgId}})
    if(!found)return bad('Project not found in this organization',400)
    projectId=found.id
   }else{
-   let defProj=await db.project.findFirst({where:{organizationId:ctx.organizationId!}})
+   let defProj=await db.project.findFirst({where:{organizationId:orgId}})
    if(!defProj){
     defProj=await db.project.create({
      data:{
-      name:`${ctx.organization?.name||'General'} Tasks`,
+      name:`${ctx.org?.name||'General'} Tasks`,
       sub:'Team tasks and milestones',
       status:'On track',
       pct:0,
       team:1,
-      lead:me.name||me.email||'Lead',
+      lead:ctx.user.name||ctx.user.email||'Lead',
       milestone:'Active',
       deadline:new Date(Date.now()+30*864e5),
-      organizationId:ctx.organizationId!
+      organizationId:orgId
      }
     })
    }
@@ -65,8 +68,14 @@ export async function POST(req:Request){
  }
 
  const priority=['high','medium','low'].includes(b.priority)?b.priority:'medium'
- const canAssign=Boolean(!ctx.isPersonal&&wideRole(ctx.role))
- const assigneeId=canAssign&&b.assigneeId?String(b.assigneeId):(ctx.isPersonal?null:me.id)
+ const targetAssigneeId=b.assigneeId?String(b.assigneeId):ctx.user.id
+ const isOwn=targetAssigneeId===ctx.user.id
+
+ if(!isPersonal&&!can(ctx.membership?.role,'task.create',isOwn)){
+  return bad('Forbidden: Only Managers and Executives can assign tasks to other members',403)
+ }
+
+ const assigneeId=isPersonal?null:targetAssigneeId
 
  const t=await db.task.create({
   data:{
@@ -75,20 +84,20 @@ export async function POST(req:Request){
    priority,
    due,
    projectId,
-   ownerId:me.id,
+   ownerId:ctx.user.id,
    assigneeId,
-   organizationId:ctx.organizationId
+   organizationId:isPersonal?null:orgId
   }
  })
 
- if(!ctx.isPersonal&&ctx.organizationId){
+ if(!isPersonal&&orgId){
   await db.activity.create({
    data:{
-    who:me.name||me.email||'Someone',
+    who:ctx.user.name||ctx.user.email||'Someone',
     what:'created',
     target:title,
-    userId:me.id,
-    organizationId:ctx.organizationId
+    userId:ctx.user.id,
+    organizationId:orgId
    }
   })
  }
