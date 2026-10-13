@@ -5,12 +5,13 @@ import {Sun,Moon,Menu,Settings,LogOut,Building,User,Plus,Check,X,Mail} from 'luc
 import {signOut} from 'next-auth/react'
 import {useWs,ROLES,ALLOWED} from '@/lib/store'
 import {Empty,Chip} from './ui'
+import {PeopleView} from './PeopleView'
 
 const NAV:any={
  employee:['Overview','Tasks','Documents','Communication','Reports','Updates'],
- manager:['Overview','Department','Team','Projects','Contracts','Communication','Reports','Updates'],
- hr:['Overview','Team','Communication','Reports','Updates'],
- executive:['Overview','Department','Team','Projects','Contracts','Communication','Reports','Updates','HeimDall AI']
+ manager:['Overview','People','Projects','Contracts','Communication','Reports','Updates'],
+ hr:['Overview','People','Communication','Reports','Updates'],
+ executive:['Overview','People','Department','Projects','Contracts','Communication','Reports','Updates','HeimDall AI']
 }
 
 export default function Shell({children}:{children:ReactNode}){
@@ -237,7 +238,9 @@ export default function Shell({children}:{children:ReactNode}){
    )}
 
    <main className="mx-auto max-w-6xl p-4 md:p-6">
-    {view==='Overview'?children:(
+    {view==='Overview'?children:view==='People'?(
+     <PeopleView/>
+    ):(
      <Empty dashed title={`${view} isn't part of this release`} hint="This section is planned for the next milestone. Your Overview is fully working."/>
     )}
    </main>
