@@ -9,7 +9,7 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
 
  const isAuthorized=!ctx.isPersonal&&
   (ctx.role==='HR'||ctx.role==='EXECUTIVE')&&
-  (!l.companyId||l.companyId===ctx.companyId)
+  (l.organizationId===ctx.organizationId)
 
  if(!isAuthorized)return bad('Forbidden: Only HR and Executives can approve leave',403)
 

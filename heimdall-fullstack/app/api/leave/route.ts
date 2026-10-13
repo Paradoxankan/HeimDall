@@ -4,14 +4,14 @@ import {getMe,bad,getActiveContext} from '@/lib/guard'
 export async function GET(){
  const me=await getMe();if(!me)return bad('Unauthorized',401)
  const ctx=getActiveContext(me)
- const where=ctx.isPersonal?{userId:me.id}:{userId:me.id,companyId:ctx.companyId}
+ const where=ctx.isPersonal?{userId:me.id}:{userId:me.id,organizationId:ctx.organizationId!}
  return Response.json(await db.leaveRequest.findMany({where,orderBy:{from:'asc'}}))
 }
 
 export async function POST(req:Request){
  const me=await getMe();if(!me)return bad('Unauthorized',401)
  const ctx=getActiveContext(me)
- if(ctx.isPersonal||!ctx.companyId)return bad('Please select a company workspace to submit leave requests',400)
+ if(ctx.isPersonal||!ctx.organizationId)return bad('Please select an organization workspace to submit leave requests',400)
 
  const b=await req.json().catch(()=>null);if(!b)return bad('Invalid JSON body',400)
  if(!['Annual leave','Casual leave','Sick leave'].includes(b.type))return bad('Invalid leave type',400)
@@ -22,7 +22,7 @@ export async function POST(req:Request){
   await db.leaveRequest.create({
    data:{
     userId:me.id,
-    companyId:ctx.companyId,
+    organizationId:ctx.organizationId,
     type:b.type,
     from,
     to

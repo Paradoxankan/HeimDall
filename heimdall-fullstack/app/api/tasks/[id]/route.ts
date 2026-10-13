@@ -10,8 +10,11 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
  const b=await req.json().catch(()=>null);if(!b)return bad('Invalid JSON body',400)
  const t=await db.task.findUnique({where:{id}});if(!t)return bad('Task not found',404)
 
- const isManager=!ctx.isPersonal&&wideRole(ctx.role)&&t.companyId===ctx.companyId
- if(t.assigneeId!==me.id&&!isManager)return bad('Forbidden',403)
+ const isOwner=t.ownerId===me.id
+ const isAssignee=t.assigneeId===me.id
+ const isManager=!ctx.isPersonal&&wideRole(ctx.role)&&t.organizationId===ctx.organizationId
+
+ if(!isOwner&&!isAssignee&&!isManager)return bad('Forbidden',403)
 
  const d:any={}
  if(b.status!==undefined){if(!OK.includes(b.status))return bad('Invalid status',400);d.status=b.status;if(b.status==='DONE')d.progress=100}
@@ -23,14 +26,14 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
  if(!Object.keys(d).length)return bad('Nothing to update',400)
 
  const u=await db.task.update({where:{id},data:d})
- if(d.status){
+ if(d.status&&t.organizationId){
   await db.activity.create({
    data:{
     who:me.name||me.email||'Someone',
     what:`marked as ${d.status.toLowerCase()}`,
     target:t.title,
     userId:me.id,
-    companyId:t.companyId
+    organizationId:t.organizationId
    }
   })
  }
@@ -42,8 +45,10 @@ export async function DELETE(_:Request,{params}:{params:Promise<{id:string}>}){
  const ctx=getActiveContext(me)
  const t=await db.task.findUnique({where:{id}});if(!t)return bad('Task not found',404)
 
- const isManager=!ctx.isPersonal&&wideRole(ctx.role)&&t.companyId===ctx.companyId
- if(t.assigneeId!==me.id&&!isManager)return bad('Forbidden',403)
+ const isOwner=t.ownerId===me.id
+ const isManager=!ctx.isPersonal&&wideRole(ctx.role)&&t.organizationId===ctx.organizationId
+
+ if(!isOwner&&!isManager)return bad('Forbidden',403)
 
  await db.task.delete({where:{id}});return Response.json({ok:true})
 }

@@ -14,19 +14,19 @@ export async function GET(){
  const hr=R==='HR'||R==='EXECUTIVE'
 
  const tasksWhere:any=ctx.isPersonal
-  ? {assigneeId:me.id}
-  : wide ? {companyId:ctx.companyId} : {companyId:ctx.companyId,assigneeId:me.id}
+  ? {ownerId:me.id,organizationId:null}
+  : wide ? {organizationId:ctx.organizationId!} : {organizationId:ctx.organizationId!,OR:[{assigneeId:me.id},{ownerId:me.id}]}
 
  const projectsWhere:any=ctx.isPersonal
-  ? {OR:[{companyId:null},{tasks:{some:{assigneeId:me.id}}}]}
-  : {companyId:ctx.companyId}
+  ? {organizationId:'__none__'}
+  : {organizationId:ctx.organizationId!}
 
  const actWhere:any=ctx.isPersonal
   ? {userId:me.id}
-  : R==='EMPLOYEE' ? {companyId:ctx.companyId,userId:me.id} : {companyId:ctx.companyId}
+  : R==='EMPLOYEE' ? {organizationId:ctx.organizationId!,userId:me.id} : {organizationId:ctx.organizationId!}
 
  const [tasks,projects,act]=await Promise.all([
-  db.task.findMany({where:tasksWhere,include:{project:true,assignee:true},orderBy:{due:'asc'}}),
+  db.task.findMany({where:tasksWhere,include:{project:true,assignee:true,owner:true},orderBy:{due:'asc'}}),
   db.project.findMany({where:projectsWhere}),
   db.activity.findMany({where:actWhere,orderBy:{at:'desc'},take:6})
  ])
@@ -37,7 +37,7 @@ export async function GET(){
    title:t.title,
    desc:t.desc,
    project:t.project?.name??'Personal',
-   assignee:t.assignee?.name??'Unassigned',
+   assignee:t.assignee?.name??t.owner?.name??'You',
    assigneeId:t.assigneeId,
    priority:t.priority,
    due:iso(t.due),
@@ -68,7 +68,7 @@ export async function GET(){
   leave:[]
  }
 
- const leaveWhere:any=ctx.isPersonal ? {userId:me.id} : {userId:me.id,companyId:ctx.companyId}
+ const leaveWhere:any=ctx.isPersonal ? {userId:me.id} : {userId:me.id,organizationId:ctx.organizationId!}
  data.myLeave=(await db.leaveRequest.findMany({where:leaveWhere,orderBy:{from:'asc'}})).map(x=>({
   id:x.id,
   type:x.type,
@@ -78,24 +78,24 @@ export async function GET(){
  }))
 
  if(!ctx.isPersonal&&R!=='EMPLOYEE'){
-  const members=await db.companyMember.findMany({
-   where:{companyId:ctx.companyId!},
+  const members=await db.membership.findMany({
+   where:{organizationId:ctx.organizationId!},
    include:{user:true},
    orderBy:{user:{name:'asc'}}
   })
   data.people=members.map(m=>({
    name:m.user.name||m.user.email,
-   role:m.title||m.user.title||'Team member',
-   dept:m.dept||m.user.dept||'General',
+   role:m.user.title||'Team member',
+   dept:'General',
    city:m.user.city||'-',
-   joined:iso(m.joinedAt),
-   status:m.user.onLeave?'On leave':'Active',
+   joined:iso(m.createdAt),
+   status:'Active',
    access:m.role
   }))
-  data.joiners=members.filter(m=>m.joinedAt>new Date()).map(m=>({
+  data.joiners=members.filter(m=>m.createdAt>new Date(Date.now()-14*864e5)).map(m=>({
    name:m.user.name||m.user.email,
-   role:m.title||m.user.title,
-   start:iso(m.joinedAt)
+   role:m.user.title,
+   start:iso(m.createdAt)
   }))
  } else if(ctx.isPersonal){
   data.people=[{
@@ -111,7 +111,7 @@ export async function GET(){
 
  if(!ctx.isPersonal&&hr){
   const l=await db.leaveRequest.findMany({
-   where:{status:'PENDING',companyId:ctx.companyId!},
+   where:{status:'PENDING',organizationId:ctx.organizationId!},
    include:{user:true},
    orderBy:{from:'asc'}
   })
@@ -126,9 +126,9 @@ export async function GET(){
 
  if(!ctx.isPersonal&&R==='EXECUTIVE'){
   const [risks,contracts,rev]=await Promise.all([
-   db.risk.findMany({where:{companyId:ctx.companyId!}}),
-   db.contract.findMany({where:{companyId:ctx.companyId!},orderBy:{due:'asc'}}),
-   db.revenue.findMany({where:{companyId:ctx.companyId!},orderBy:{order:'asc'}})
+   db.risk.findMany({where:{organizationId:ctx.organizationId!}}),
+   db.contract.findMany({where:{organizationId:ctx.organizationId!},orderBy:{due:'asc'}}),
+   db.revenue.findMany({where:{organizationId:ctx.organizationId!},orderBy:{order:'asc'}})
   ])
   const W:any={Critical:3,Medium:2,Low:1},T:any={Critical:'bad',Medium:'warn',Low:'ok'}
   const open=tasks.filter(t=>t.status!=='DONE'),late=open.filter(t=>t.due<new Date()),blocked=tasks.filter(t=>t.status==='BLOCKED').length
@@ -149,11 +149,13 @@ export async function GET(){
 
  const pendingInvites=me.email
   ? await db.invitation.findMany({
-      where:{email:me.email,status:'PENDING'},
-      include:{company:true,invitedBy:{select:{name:true,email:true}}},
+      where:{email:me.email.toLowerCase(),status:'PENDING'},
+      include:{organization:true,invitedBy:{select:{name:true,email:true}}},
       orderBy:{createdAt:'desc'}
     })
   : []
+
+ const currentOrg=ctx.organization
 
  return Response.json({
   me:{
@@ -164,19 +166,19 @@ export async function GET(){
   },
   workspace:{
    isPersonal:ctx.isPersonal,
-   activeCompany:ctx.company?{id:ctx.company.id,name:ctx.company.name,slug:ctx.company.slug}:null,
-   companies:me.memberships.map(m=>({
-    id:m.company.id,
-    name:m.company.name,
-    slug:m.company.slug,
-    role:m.role,
-    title:m.title
-   })),
+   activeCompany:currentOrg?{id:currentOrg.id,name:currentOrg.name,slug:currentOrg.slug}:null,
+   companies:currentOrg?[{
+    id:currentOrg.id,
+    name:currentOrg.name,
+    slug:currentOrg.slug,
+    role:ctx.role,
+    title:me.title
+   }]:[],
    invitations:pendingInvites.map(i=>({
     id:i.id,
     token:i.token,
-    companyName:i.company.name,
-    companySlug:i.company.slug,
+    companyName:i.organization.name,
+    companySlug:i.organization.slug,
     role:i.role,
     invitedBy:i.invitedBy?.name||i.invitedBy?.email||'Team lead',
     expiresAt:i.expiresAt

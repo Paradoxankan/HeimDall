@@ -13,16 +13,15 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
  const role=b?.role as Role
  if(!['EMPLOYEE','MANAGER','HR','EXECUTIVE'].includes(role))return bad('Invalid role',400)
 
- const member=await db.companyMember.findUnique({
-  where:{companyId_userId:{companyId:ctx.companyId!,userId:id}}
+ const member=await db.membership.findUnique({
+  where:{userId:id}
  })
- if(!member)return bad('User is not a member of this company',404)
+ if(!member||member.organizationId!==ctx.organizationId)return bad('User is not a member of this organization',404)
 
- const updated=await db.companyMember.update({
+ const updated=await db.membership.update({
   where:{id:member.id},
   data:{role}
  })
 
- await db.user.update({where:{id},data:{role}})
  return Response.json(updated)
 }

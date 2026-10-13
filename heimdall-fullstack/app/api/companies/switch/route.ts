@@ -1,4 +1,3 @@
-import {db} from '@/lib/db'
 import {getMe,bad} from '@/lib/guard'
 
 export async function POST(req:Request){
@@ -7,18 +6,16 @@ export async function POST(req:Request){
  const {companyId}=b
 
  if(companyId===null){
-  await db.user.update({where:{id:me.id},data:{activeCompanyId:null}})
   return Response.json({activeCompanyId:null,isPersonal:true})
  }
 
  if(typeof companyId!=='string'||!companyId){
-  return bad('Invalid company ID',400)
+  return bad('Invalid organization ID',400)
  }
 
- const membership=me.memberships.find(m=>m.companyId===companyId)
- if(!membership)return bad('You are not a member of this company',403)
+ if(!me.membership||me.membership.organizationId!==companyId){
+  return bad('You are not a member of this organization',403)
+ }
 
- await db.user.update({where:{id:me.id},data:{activeCompanyId:companyId}})
- return Response.json({activeCompanyId:companyId,isPersonal:false,role:membership.role})
+ return Response.json({activeCompanyId:companyId,isPersonal:false,role:me.membership.role})
 }
-
