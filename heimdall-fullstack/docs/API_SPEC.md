@@ -429,3 +429,4 @@ Cancels a pending leave request.
 
 - **Auth Required:** Yes (must be request owner; status must be `PENDING`)
 - **Response `200 OK`:** `{ "ok": true }`.
+

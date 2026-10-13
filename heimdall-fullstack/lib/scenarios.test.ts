@@ -111,3 +111,4 @@ test('Verification (6): An invitation for another email cannot be accepted', () 
  const canRightfulAccept = rightfulUser.email.toLowerCase() === invite.email.toLowerCase()
  assert.equal(canRightfulAccept, true, 'Rightful user email matches invitation')
 })
+

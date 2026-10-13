@@ -271,3 +271,4 @@ To execute the full manual checklist, prepare four test accounts (or sign in wit
 | **Owner Deletion Protection** | Executive attempts to remove the organization creator | `403 Forbidden` | Error: *"The organization owner/creator cannot be removed"* |
 | **Self Deletion Protection** | User attempts to delete their own membership via member removal route | `400 Bad Request` | Error: *"You cannot remove yourself from the organization here"* |
 | **Revoke Invite** | Org admin clicks Revoke on a pending invite | `200 OK` | Invitation status transitions to `REVOKED`; disappears from pending list |
+
