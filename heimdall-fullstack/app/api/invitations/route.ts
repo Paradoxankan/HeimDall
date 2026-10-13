@@ -1,5 +1,5 @@
 import {db} from '@/lib/db'
-import {getMe,bad,getActiveContext} from '@/lib/guard'
+import {getContext,bad,can} from '@/lib/guard'
 import {Role} from '@prisma/client'
 
 export const dynamic='force-dynamic'
@@ -8,13 +8,12 @@ const EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const VALID_ROLES:Role[]=['EMPLOYEE','MANAGER','HR','EXECUTIVE']
 
 export async function GET(){
- const me=await getMe();if(!me)return bad('Unauthorized',401)
- const ctx=getActiveContext(me)
- if(ctx.isPersonal||!ctx.organizationId)return bad('Select an organization workspace first',400)
- if(ctx.role!=='EXECUTIVE'&&ctx.role!=='HR')return bad('Forbidden: Only Executives and HR can view invitations',403)
+ const ctx=await getContext();if(!ctx)return bad('Unauthorized',401)
+ if(!ctx.membership||!ctx.org)return bad('Select an organization workspace first',400)
+ const orgId=ctx.membership.organizationId
 
  const list=await db.invitation.findMany({
-  where:{organizationId:ctx.organizationId},
+  where:{organizationId:orgId},
   include:{invitedBy:{select:{name:true,email:true}}},
   orderBy:{createdAt:'desc'}
  })
@@ -32,10 +31,9 @@ export async function GET(){
 }
 
 export async function POST(req:Request){
- const me=await getMe();if(!me)return bad('Unauthorized',401)
- const ctx=getActiveContext(me)
- if(ctx.isPersonal||!ctx.organizationId)return bad('Select an organization workspace first',400)
- if(ctx.role!=='EXECUTIVE'&&ctx.role!=='HR')return bad('Forbidden: Only Executives and HR can invite team members',403)
+ const ctx=await getContext();if(!ctx)return bad('Unauthorized',401)
+ if(!ctx.membership||!ctx.org)return bad('Select an organization workspace first',400)
+ const orgId=ctx.membership.organizationId
 
  const b=await req.json().catch(()=>null);if(!b)return bad('Invalid JSON body',400)
  const email=String(b.email||'').trim().toLowerCase()
@@ -44,16 +42,20 @@ export async function POST(req:Request){
  const role=(b.role||'EMPLOYEE') as Role
  if(!VALID_ROLES.includes(role))return bad('Invalid organization role',400)
 
+ if(!can(ctx.membership.role,'member.invite',role)){
+  return bad(`Forbidden: You do not have permission to invite a member as ${role}`,403)
+ }
+
  const existingUser=await db.user.findUnique({where:{email}})
  if(existingUser){
   const existingMem=await db.membership.findUnique({where:{userId:existingUser.id}})
-  if(existingMem&&existingMem.organizationId===ctx.organizationId){
+  if(existingMem&&existingMem.organizationId===orgId){
    return bad('User is already a member of this organization',409)
   }
  }
 
  const existingInvite=await db.invitation.findFirst({
-  where:{organizationId:ctx.organizationId,email,status:'PENDING'}
+  where:{organizationId:orgId,email,status:'PENDING'}
  })
  if(existingInvite){
   if(existingInvite.expiresAt>new Date()){
@@ -63,15 +65,14 @@ export async function POST(req:Request){
   }
  }
 
- // 14 days expiration as specified
  const expiresAt=new Date(Date.now()+14*864e5)
 
  const invite=await db.invitation.create({
   data:{
-   organizationId:ctx.organizationId,
+   organizationId:orgId,
    email,
    role,
-   invitedById:me.id,
+   invitedById:ctx.user.id,
    expiresAt
   }
  })

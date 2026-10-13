@@ -1,20 +1,22 @@
 import {db} from '@/lib/db'
-import {getMe,bad,getActiveContext} from '@/lib/guard'
+import {getContext,bad,can} from '@/lib/guard'
 
 const OK=['TODO','PROGRESS','BLOCKED','DONE']
-const wideRole=(r:string)=>r==='MANAGER'||r==='EXECUTIVE'
 
 export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
- const {id}=await params,me=await getMe();if(!me)return bad('Unauthorized',401)
- const ctx=getActiveContext(me)
+ const {id}=await params,ctx=await getContext();if(!ctx)return bad('Unauthorized',401)
  const b=await req.json().catch(()=>null);if(!b)return bad('Invalid JSON body',400)
  const t=await db.task.findUnique({where:{id}});if(!t)return bad('Task not found',404)
 
- const isOwner=t.ownerId===me.id
- const isAssignee=t.assigneeId===me.id
- const isManager=!ctx.isPersonal&&wideRole(ctx.role)&&t.organizationId===ctx.organizationId
+ const isOwn=t.ownerId===ctx.user.id||t.assigneeId===ctx.user.id
+ const isPersonal=!t.organizationId
 
- if(!isOwner&&!isAssignee&&!isManager)return bad('Forbidden',403)
+ if(isPersonal){
+  if(t.ownerId!==ctx.user.id)return bad('Forbidden',403)
+ }else{
+  if(t.organizationId!==ctx.membership?.organizationId)return bad('Forbidden',403)
+  if(!can(ctx.membership?.role,'task.update',isOwn))return bad('Forbidden',403)
+ }
 
  const d:any={}
  if(b.status!==undefined){if(!OK.includes(b.status))return bad('Invalid status',400);d.status=b.status;if(b.status==='DONE')d.progress=100}
@@ -29,10 +31,10 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
  if(d.status&&t.organizationId){
   await db.activity.create({
    data:{
-    who:me.name||me.email||'Someone',
+    who:ctx.user.name||ctx.user.email||'Someone',
     what:`marked as ${d.status.toLowerCase()}`,
     target:t.title,
-    userId:me.id,
+    userId:ctx.user.id,
     organizationId:t.organizationId
    }
   })
@@ -41,14 +43,18 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
 }
 
 export async function DELETE(_:Request,{params}:{params:Promise<{id:string}>}){
- const {id}=await params,me=await getMe();if(!me)return bad('Unauthorized',401)
- const ctx=getActiveContext(me)
+ const {id}=await params,ctx=await getContext();if(!ctx)return bad('Unauthorized',401)
  const t=await db.task.findUnique({where:{id}});if(!t)return bad('Task not found',404)
 
- const isOwner=t.ownerId===me.id
- const isManager=!ctx.isPersonal&&wideRole(ctx.role)&&t.organizationId===ctx.organizationId
+ const isOwn=t.ownerId===ctx.user.id||t.assigneeId===ctx.user.id
+ const isPersonal=!t.organizationId
 
- if(!isOwner&&!isManager)return bad('Forbidden',403)
+ if(isPersonal){
+  if(t.ownerId!==ctx.user.id)return bad('Forbidden',403)
+ }else{
+  if(t.organizationId!==ctx.membership?.organizationId)return bad('Forbidden',403)
+  if(!can(ctx.membership?.role,'task.delete',isOwn))return bad('Forbidden',403)
+ }
 
  await db.task.delete({where:{id}});return Response.json({ok:true})
 }
