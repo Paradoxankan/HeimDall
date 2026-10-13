@@ -7,14 +7,24 @@ import {ST,PR,Th,Updates,Projects} from './shared'
 import {UserPlus} from 'lucide-react'
 
 export function InviteMemberForm(){
- const {inviteMember,busy}=useWs()
- const [f,setF]=useState({email:'',role:'EMPLOYEE'})
+ const {inviteMember,busy,me}=useWs()
+ const callerRole=me?.role
+ const allowedRoles=(['HR','MANAGER','EMPLOYEE'] as const).filter(r=>can(callerRole,'member.invite',r))
+
+ const [f,setF]=useState({email:'',role:allowedRoles[0]||'EMPLOYEE'})
  const [err,setErr]=useState<any>({})
  const [sent,setSent]=useState(false)
+
+ useEffect(()=>{
+  if(allowedRoles.length&&!allowedRoles.includes(f.role as any)){
+   setF(prev=>({...prev,role:allowedRoles[0]}))
+  }
+ },[allowedRoles,f.role])
 
  const submit=async()=>{
   const e:any={}
   if(!f.email.trim()||!f.email.includes('@'))e.email='Enter a valid email address.'
+  if(!allowedRoles.includes(f.role as any))e.role='You do not have permission to invite this role.'
   setErr(e)
   if(Object.keys(e).length)return
 
@@ -22,10 +32,10 @@ export function InviteMemberForm(){
   if(r.error){
    setErr({form:r.error})
   }else{
-   setF({email:'',role:'EMPLOYEE'})
+   setF({email:'',role:allowedRoles[0]||'EMPLOYEE'})
    setErr({})
    setSent(true)
-   setTimeout(()=>setSent(false),4000)
+   setTimeout(()=>setSent(false),6000)
   }
  }
 
@@ -50,18 +60,25 @@ export function InviteMemberForm(){
       value={f.role}
       onChange={e=>setF({...f,role:e.target.value})}
      >
-      <option value="EMPLOYEE">Employee</option>
-      <option value="MANAGER">Manager</option>
-      <option value="HR">HR</option>
-      <option value="EXECUTIVE">Executive</option>
+      {allowedRoles.map(r=>(
+       <option key={r} value={r}>
+        {r==='HR'?'HR':r==='MANAGER'?'Manager':'Employee'}
+       </option>
+      ))}
      </select>
+     {err.role&&<p className="mt-1 text-xs text-bad">{err.role}</p>}
     </label>
    </div>
    {err.form&&<p className="mt-2 text-xs text-bad">{err.form}</p>}
-   {sent&&<p className="mt-2 text-xs text-ok">Invitation sent successfully! They can accept upon sign in.</p>}
+   {sent&&(
+    <div className="mt-2 space-y-1 rounded-md border border-ok/30 bg-ok/10 p-2.5 text-xs text-ok">
+     <p className="font-semibold">Invitation sent successfully!</p>
+     <p className="text-ink">Ask them to sign in to HeimDall with this email.</p>
+    </div>
+   )}
    <button
     onClick={submit}
-    disabled={!!busy['invite-member']}
+    disabled={!allowedRoles.length||!!busy['invite-member']}
     className="mt-3 flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60 dark:text-[#07101f]"
    >
     <UserPlus size={15}/>
