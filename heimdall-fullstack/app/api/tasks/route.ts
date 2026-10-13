@@ -35,7 +35,34 @@ export async function POST(req:Request){
  const due=new Date(b.due)
  if(isNaN(+due))return bad('A valid due date is required',400)
 
- if(!await db.project.findUnique({where:{id:String(b.projectId)}}))return bad('Project not found',400)
+ let projectId=b.projectId?String(b.projectId):null
+ if(!projectId){
+  const defaultProjName=ctx.isPersonal?'Personal Workspace':`${ctx.company?.name||'General'} Tasks`
+  let proj=await db.project.findFirst({
+   where:ctx.isPersonal
+    ? {name:defaultProjName,companyId:null}
+    : {name:defaultProjName,companyId:ctx.companyId}
+  })
+  if(!proj){
+   proj=await db.project.create({
+    data:{
+     name:defaultProjName,
+     sub:ctx.isPersonal?'Personal tasks and milestones':'General team workspace',
+     status:'On track',
+     pct:0,
+     team:1,
+     lead:me.name||me.email||'You',
+     milestone:'Active',
+     deadline:new Date(Date.now()+30*864e5),
+     companyId:ctx.companyId
+    }
+   })
+  }
+  projectId=proj.id
+ }else{
+  const found=await db.project.findUnique({where:{id:projectId}})
+  if(!found)return bad('Project not found',400)
+ }
 
  const priority=['high','medium','low'].includes(b.priority)?b.priority:'medium'
  const canAssign=Boolean(!ctx.isPersonal&&wideRole(ctx.role))
@@ -47,7 +74,7 @@ export async function POST(req:Request){
    desc:String(b.desc||'').slice(0,500),
    priority,
    due,
-   projectId:String(b.projectId),
+   projectId,
    assigneeId,
    companyId:ctx.companyId
   }
