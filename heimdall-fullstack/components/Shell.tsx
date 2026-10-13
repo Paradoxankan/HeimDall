@@ -40,11 +40,13 @@ export default function Shell({children}:{children:ReactNode}){
 
  const handleCreate=async()=>{
   const e:any={}
-  if(newCo.name.trim().length<2)e.name='Company name must be at least 2 characters.'
+  const trimmedName=newCo.name.trim()
+  if(trimmedName.length<3||trimmedName.length>60)e.name='Company name must be between 3 and 60 characters.'
   setFormErr(e)
   if(Object.keys(e).length)return
 
-  const res=await createCompany(newCo)
+  const slug=newCo.slug.trim()||trimmedName.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')
+  const res=await createCompany({name:trimmedName,slug})
   if(res.error){
    setFormErr({form:res.error})
   }else{
