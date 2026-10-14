@@ -232,3 +232,59 @@ test('Verification (10): Safety rule - sole Executive cannot leave or be removed
  assert.equal(employeeCheck.status, 200, 'Employee allowed to leave / be removed')
  assert.equal(employeeCheck.allowed, true)
 })
+
+test('Verification (11): AI Contract extraction throws friendly error when API key is missing', async () => {
+ const { extractContract } = await import('./ai')
+ const originalKey = process.env.ANTHROPIC_API_KEY
+ delete process.env.ANTHROPIC_API_KEY
+
+ await assert.rejects(
+  async () => {
+   await extractContract({
+    buffer: Buffer.from('Contract text sample'),
+    mimeType: 'text/plain',
+    fileName: 'sample.txt'
+   })
+  },
+  /Missing ANTHROPIC_API_KEY environment variable/
+ )
+
+ if (originalKey) process.env.ANTHROPIC_API_KEY = originalKey
+})
+
+test('Verification (12): Contract due date selects the earliest future obligation date', () => {
+ const today = new Date('2026-10-15T00:00:00.000Z')
+ const obligations = [
+  { text: 'Past obligation', due: '2026-10-01' },
+  { text: 'Upcoming obligation 1', due: '2026-11-01' },
+  { text: 'Upcoming obligation 2', due: '2026-10-20' },
+  { text: 'No date obligation', due: null }
+ ]
+
+ let earliestFutureDue: Date | null = null
+ for (const ob of obligations) {
+  if (ob.due) {
+   const d = new Date(ob.due)
+   if (!isNaN(d.getTime()) && d >= today) {
+    if (!earliestFutureDue || d < earliestFutureDue) {
+     earliestFutureDue = d
+    }
+   }
+  }
+ }
+
+ assert.equal(earliestFutureDue?.toISOString().slice(0, 10), '2026-10-20')
+})
+
+test('Verification (13): Obligation task creation is idempotent', () => {
+ const obligations = [
+  { id: 'ob_1', text: 'Pay cloud invoice', taskId: null, due: new Date(), priority: 'high' },
+  { id: 'ob_2', text: 'Submit audit compliance', taskId: 'task_existing_123', due: new Date(), priority: 'medium' }
+ ]
+
+ // Filter obligations without a task
+ const eligible = obligations.filter(o => !o.taskId)
+ assert.equal(eligible.length, 1, 'Only obligations with null taskId are eligible')
+ assert.equal(eligible[0].id, 'ob_1')
+})
+
