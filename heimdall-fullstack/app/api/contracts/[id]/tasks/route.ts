@@ -3,7 +3,7 @@ import {db} from '@/lib/db'
 
 export async function POST(
   req: Request,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const ctx = await getContext()
   if (!ctx) return bad('Unauthorized', 401)
