@@ -190,12 +190,13 @@ async function callGemini(
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
     model
-  )}:generateContent?key=${encodeURIComponent(apiKey)}`
+  )}:generateContent`
 
   const res = await fetch(url, {
     method: 'POST',
     headers: {
-      'content-type': 'application/json'
+      'content-type': 'application/json',
+      'x-goog-api-key': apiKey
     },
     body: JSON.stringify({
       systemInstruction: {
