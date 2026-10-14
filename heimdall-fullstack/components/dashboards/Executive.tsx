@@ -119,17 +119,34 @@ export function Executive(){
       </Card>
 
       <Card title="Contract alerts">
-       {e.contracts?.length?(
-        <ul className="space-y-2">
-         {e.contracts.map((c:any)=>(
-          <li key={c.name}>
-           <p className="font-medium">{c.name}</p>
-           <p className="text-xs text-mute">{c.note}. Due in {days(c.due)} days.</p>
-          </li>
-         ))}
+       {(data?.contracts || e.contracts)?.length?(
+        <ul className="space-y-3">
+         {(data?.contracts || e.contracts).map((c:any)=>{
+          const nearest = c.obligations?.find((o:any)=>!o.taskId && o.due) || c.obligations?.[0]
+          const [dText, dTone] = c.due ? due(c.due.slice(0,10)) : ['No deadline','mute']
+          return (
+           <li key={c.id || c.name} className="border-b border-line pb-2.5 last:border-0 last:pb-0">
+            <div className="flex items-start justify-between gap-2">
+             <div>
+              <p className="font-medium text-ink">{c.name}</p>
+              {c.party&&<p className="text-xs text-mute">Party: {c.party}</p>}
+             </div>
+             <Chip tone={dTone as string}>{dText}</Chip>
+            </div>
+            {nearest?(
+             <p className="mt-1 text-xs text-mute">
+              <span className="font-medium text-ink/80">Next:</span> {nearest.text}
+              {nearest.due&&` (${fmt(nearest.due.slice(0,10))})`}
+             </p>
+            ):(
+             c.note&&<p className="mt-1 text-xs text-mute">{c.note}</p>
+            )}
+           </li>
+          )
+         })}
         </ul>
        ):(
-        <Empty title="No contract alerts" hint="Renewals and flagged clauses will appear here."/>
+        <Empty title="No contract alerts" hint="Renewals, payment milestones, and flagged clauses will appear here."/>
        )}
       </Card>
      </div>
