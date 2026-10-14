@@ -126,25 +126,54 @@ export async function GET(){
   }))
  }
 
+ let contractsWithObligations: any[] = []
+ if(!isPersonal && (R === 'EXECUTIVE' || R === 'MANAGER')){
+  contractsWithObligations = await db.contract.findMany({
+   where: { organizationId: orgId! },
+   include: {
+    obligations: {
+     orderBy: [{ due: 'asc' }, { createdAt: 'asc' }]
+    }
+   },
+   orderBy: { createdAt: 'desc' }
+  })
+  data.contracts = contractsWithObligations.map(c => ({
+   id: c.id,
+   name: c.name,
+   party: c.party,
+   summary: c.summary,
+   due: c.due ? iso(c.due) : null,
+   note: c.note || c.summary,
+   obligations: c.obligations.map(o => ({
+    id: o.id,
+    text: o.text,
+    owner: o.owner,
+    kind: o.kind,
+    due: o.due ? iso(o.due) : null,
+    priority: o.priority,
+    taskId: o.taskId
+   }))
+  }))
+ }
+
  if(!isPersonal&&R==='EXECUTIVE'){
-  const [risks,contracts,rev]=await Promise.all([
+  const [risks,rev]=await Promise.all([
    db.risk.findMany({where:{organizationId:orgId!}}),
-   db.contract.findMany({where:{organizationId:orgId!},orderBy:{due:'asc'}}),
    db.revenue.findMany({where:{organizationId:orgId!},orderBy:{order:'asc'}})
   ])
   const W:any={Critical:3,Medium:2,Low:1},T:any={Critical:'bad',Medium:'warn',Low:'ok'}
   const open=tasks.filter(t=>t.status!=='DONE'),late=open.filter(t=>t.due<new Date()),blocked=tasks.filter(t=>t.status==='BLOCKED').length
-  const delayed=projects.filter(p=>p.status==='Delayed').map(p=>p.name),soon=contracts.filter(c=>c.due&&c.due.getTime()-Date.now()<7*864e5).length
+  const delayed=projects.filter(p=>p.status==='Delayed').map(p=>p.name),soon=contractsWithObligations.filter(c=>c.due&&c.due.getTime()-Date.now()<7*864e5).length
   data.exec={
    score:Math.min(10,risks.reduce((n,r)=>n+(W[r.level]||0),0)),
    compliance:open.length?Math.round(100-late.length/open.length*100):100,
    summary:[
-    delayed.length?`${delayed.join(', ')} ${delayed.length>1?'are':'is'} behind schedule.`:'All projects are on schedule.',
-    blocked?`${blocked} task${blocked>1?'s are':' is'} blocked.`:'No tasks are blocked.',
-    soon?`${soon} contract${soon>1?'s are':' is'} due within a week.`:'No contracts are due this week.'
+    delayed.length?delayed.join(', ') + ' ' + (delayed.length>1?'are':'is') + ' behind schedule.':'All projects are on schedule.',
+    blocked?blocked + ' task' + (blocked>1?'s are':' is') + ' blocked.':'No tasks are blocked.',
+    soon?soon + ' contract' + (soon>1?'s are':' is') + ' due within a week.':'No contracts are due this week.'
    ],
    risks:risks.map(r=>({level:r.level,tone:T[r.level],title:r.title,detail:r.detail,dept:r.dept,next:r.next})),
-   contracts:contracts.map(c=>({name:c.name,party:c.party,due:c.due?iso(c.due):null,note:c.note||c.summary})),
+   contracts:data.contracts||[],
    revenue:rev.map(r=>({m:r.month,product:r.product,services:r.services,sales:r.sales}))
   }
  }
