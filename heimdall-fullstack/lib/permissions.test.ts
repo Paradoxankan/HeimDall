@@ -4,14 +4,13 @@ import {can} from './permissions'
 import {Role} from '@prisma/client'
 
 test('Permission Matrix: org.create', () => {
- // Any signed-in user without a membership
+ // Any signed-in user can create a company (even if already member of other companies)
  assert.equal(can(null, 'org.create'), true, 'User without membership can create org')
  assert.equal(can(undefined, 'org.create'), true, 'Undefined role can create org')
 
- // Users with an existing membership cannot create another org
  const roles: Role[] = ['EMPLOYEE', 'MANAGER', 'HR', 'EXECUTIVE']
  for (const r of roles) {
-  assert.equal(can(r, 'org.create'), false, `${r} cannot create another org`)
+  assert.equal(can(r, 'org.create'), true, `${r} can create another org`)
  }
 })
 

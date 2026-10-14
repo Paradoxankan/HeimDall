@@ -11,7 +11,7 @@ export default function Landing(){
 
  useEffect(()=>{
   if(ready&&me){
-   if(workspace?.companies?.length>0){
+   if(workspace?.activeCompany&&!workspace?.isPersonal){
     router.replace('/workspace')
    }else{
     router.replace('/home')
@@ -46,10 +46,10 @@ export default function Landing(){
       Get started with your personal workspace or access your company.
      </p>
      <div className="mt-6 space-y-3">
-      <button className={btn} onClick={()=>signIn('github',{callbackUrl:'/home'})}>
+      <button className={btn} onClick={()=>signIn('github',{callbackUrl:'/'})}>
        Continue with GitHub
       </button>
-      <button className={btn} onClick={()=>signIn('google',{callbackUrl:'/home'})}>
+      <button className={btn} onClick={()=>signIn('google',{callbackUrl:'/'})}>
        Continue with Google
       </button>
      </div>
