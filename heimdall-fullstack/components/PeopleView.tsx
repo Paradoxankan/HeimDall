@@ -234,6 +234,12 @@ export function PeopleView(){
        </div>
       }
      >
+      {leaveErr&&(
+       <div className="mb-4 flex items-center gap-2 rounded-md border border-bad/40 bg-bad/10 p-3 text-xs text-bad">
+        <AlertCircle size={15} className="shrink-0"/>
+        <span>{leaveErr}</span>
+       </div>
+      )}
       {loading?(
        <div className="space-y-3 py-6">
         <div className="h-4 w-3/4 animate-pulse rounded bg-line"/>
@@ -316,7 +322,32 @@ export function PeopleView(){
                m.isCreator?(
                 <span className="text-[11px] text-mute">Owner</span>
                ):m.userId===me?.id?(
-                <span className="text-[11px] text-mute">Self</span>
+                confirmLeave?(
+                 <div className="flex items-center justify-end gap-1.5">
+                  <button
+                   onClick={handleLeave}
+                   disabled={isLeaving}
+                   className="rounded bg-bad px-2 py-0.5 text-[11px] text-white disabled:opacity-60"
+                  >
+                   {isLeaving?'Leaving...':'Confirm'}
+                  </button>
+                  <button
+                   onClick={()=>setConfirmLeave(false)}
+                   className="rounded border border-line px-2 py-0.5 text-[11px] text-mute hover:bg-surface"
+                  >
+                   Cancel
+                  </button>
+                 </div>
+                ):(
+                 <button
+                  onClick={()=>setConfirmLeave(true)}
+                  className="inline-flex items-center gap-1 text-xs text-mute hover:text-bad"
+                  title="Leave this organization"
+                 >
+                  <LogOut size={13}/>
+                  <span>Leave</span>
+                 </button>
+                )
                ):(
                 <span className="text-[11px] text-mute">—</span>
                )
