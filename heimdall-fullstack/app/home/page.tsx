@@ -21,7 +21,7 @@ import {
  ArrowRight,
  Bot
 } from 'lucide-react'
-import {useWs,due,fmt} from '@/lib/store'
+import {useWs,due,fmt,ROLES} from '@/lib/store'
 import {Card,Chip,Empty} from '@/components/ui'
 
 const PR_TONE:any={high:'warn',medium:'accent',low:'mute'}
@@ -36,6 +36,8 @@ export default function HomePage(){
  const [tasks,setTasks]=useState<any[]>([])
  const [invitations,setInvitations]=useState<any[]>([])
  const [membership,setMembership]=useState<any>(null)
+ const [memberships,setMemberships]=useState<any[]>([])
+ const [isSwitching,setIsSwitching]=useState(false)
 
  // Profile edit state
  const [isEditingProfile,setIsEditingProfile]=useState(false)
@@ -79,6 +81,7 @@ export default function HomePage(){
 
    setUserData(jMe.user)
    setMembership(jMe.membership)
+   setMemberships(jMe.memberships||[])
    setInvitations(jMe.invitations||[])
    setTasks(jTasks||[])
    setProfileForm({
@@ -122,6 +125,30 @@ export default function HomePage(){
    setProfileErr({form:'Network error. Please try again.'})
   }finally{
    setIsSavingProfile(false)
+  }
+ }
+
+ const handleSwitchCompany=async(val:string)=>{
+  if(val==='__create__'){
+   router.push('/create-company')
+   return
+  }
+  if(val==='personal')return
+  setIsSwitching(true)
+  try{
+   const r=await fetch('/api/orgs/switch',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({organizationId:val})
+   })
+   if(r.ok){
+    await reload()
+    router.push('/workspace')
+   }
+  }catch{
+   // handled
+  }finally{
+   setIsSwitching(false)
   }
  }
 
