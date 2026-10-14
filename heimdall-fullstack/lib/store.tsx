@@ -99,7 +99,8 @@ export function WorkspaceProvider({children}:{children:ReactNode}){
  const requestLeave=(b:any)=>run('new-leave',null,()=>call('/api/leave','POST',b))
  const cancelLeave=(id:string)=>run(id,d=>({...d,myLeave:d.myLeave.filter((l:any)=>l.id!==id)}),()=>call(`/api/leave/${id}`,'DELETE'))
  const decideLeave=(id:string,decision:string)=>run(id,d=>({...d,leave:d.leave.filter((l:any)=>l.id!==id)}),()=>call(`/api/leave/${id}`,'PATCH',{decision}))
- const switchWorkspace=(companyId:string|null)=>run('switch-ws',null,()=>call('/api/companies/switch','POST',{companyId}))
+ const switchWorkspace=(companyId:string|null)=>run('switch-ws',null,()=>call('/api/orgs/switch','POST',{organizationId:companyId}))
+ const leaveCompany=()=>run('leave-co',null,()=>call('/api/orgs/leave','POST'))
  const createCompany=(b:any)=>run('create-co',null,()=>call('/api/orgs','POST',b))
  const acceptInvitation=(token:string)=>run('accept-inv-'+token,null,()=>call(`/api/invitations/${token}/accept`,'POST'))
  const declineInvitation=(token:string)=>run('decline-inv-'+token,null,()=>call(`/api/invitations/${token}/decline`,'POST'))
@@ -135,6 +136,7 @@ export function WorkspaceProvider({children}:{children:ReactNode}){
    cancelLeave,
    decideLeave,
    switchWorkspace,
+   leaveCompany,
    createCompany,
    acceptInvitation,
    declineInvitation,

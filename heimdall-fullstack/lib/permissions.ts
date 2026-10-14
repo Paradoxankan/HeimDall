@@ -19,7 +19,7 @@ export interface ActionDetails {
  * Permission matrix evaluation helper.
  *
  * Rules:
- * - org.create: any signed-in user without a membership.
+ * - org.create: any signed-in user (even if already member of other companies).
  * - member.invite EXECUTIVE: nobody (only the creator is executive).
  * - member.invite HR or MANAGER: EXECUTIVE only.
  * - member.invite EMPLOYEE: EXECUTIVE, HR, MANAGER.
@@ -47,8 +47,8 @@ export function can(
 
  switch (action) {
   case 'org.create':
-   // Any signed-in user without a membership
-   return !role
+   // Any signed-in user can create a company (makes them EXECUTIVE in the new company)
+   return true
 
   case 'member.invite':
    if (!role) return false
@@ -97,4 +97,3 @@ export function can(
    return false
  }
 }
-

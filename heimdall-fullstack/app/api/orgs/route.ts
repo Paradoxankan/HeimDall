@@ -1,5 +1,6 @@
+import {cookies} from 'next/headers'
 import {db} from '@/lib/db'
-import {getContext,bad} from '@/lib/guard'
+import {getContext,bad,HD_ORG_COOKIE,getCookieOptions} from '@/lib/guard'
 
 export const dynamic='force-dynamic'
 
@@ -8,10 +9,6 @@ const SLUG_RE=/^[a-z0-9]+(?:-[a-z0-9]+)*$/
 export async function POST(req:Request){
  const ctx=await getContext()
  if(!ctx)return bad('Unauthorized',401)
-
- if(ctx.membership){
-  return bad('You already belong to a company. A user may belong to only one organization at a time.',409)
- }
 
  const b=await req.json().catch(()=>null)
  if(!b)return bad('Invalid JSON body',400)
@@ -56,6 +53,9 @@ export async function POST(req:Request){
   return {organization,membership}
  })
 
+ // Switch active organization to the newly created company
+ const cookieStore=await cookies()
+ cookieStore.set(HD_ORG_COOKIE,result.organization.id,getCookieOptions())
+
  return Response.json(result,{status:201})
 }
-

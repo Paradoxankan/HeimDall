@@ -35,8 +35,15 @@ export async function POST(req:Request){
  // Check if user with this email is already a member of this organization
  const existingUser=await db.user.findUnique({where:{email}})
  if(existingUser){
-  const existingMem=await db.membership.findUnique({where:{userId:existingUser.id}})
-  if(existingMem&&existingMem.organizationId===orgId){
+  const existingMem=await db.membership.findUnique({
+   where:{
+    userId_organizationId:{
+     userId:existingUser.id,
+     organizationId:orgId
+    }
+   }
+  })
+  if(existingMem){
    return bad('User is already a member of this organization',409)
   }
  }
@@ -84,4 +91,3 @@ export async function POST(req:Request){
   invitedBy:invite.invitedBy?.name||invite.invitedBy?.email||'Team lead'
  },{status:201})
 }
-

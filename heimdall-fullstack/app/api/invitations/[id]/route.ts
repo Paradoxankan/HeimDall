@@ -1,5 +1,6 @@
+import {cookies} from 'next/headers'
 import {db} from '@/lib/db'
-import {getContext,bad} from '@/lib/guard'
+import {getContext,bad,HD_ORG_COOKIE,getCookieOptions} from '@/lib/guard'
 
 export const dynamic='force-dynamic'
 
@@ -32,7 +33,7 @@ export async function GET(_:Request,{params}:{params:Promise<{id:string}>}){
 export async function POST(_:Request,{params}:{params:Promise<{id:string}>}){
  const {id}=await params
  const ctx=await getContext();if(!ctx)return bad('Unauthorized',401)
- const {user,membership}=ctx
+ const {user}=ctx
 
  const invite=await db.invitation.findFirst({where:{OR:[{id},{token:id}]},include:{organization:true}})
  if(!invite)return bad('Invitation not found',404)
@@ -47,8 +48,16 @@ export async function POST(_:Request,{params}:{params:Promise<{id:string}>}){
   return bad(`This invitation is intended for ${invite.email}. You are signed in as ${user.email||'another account'}.`,403)
  }
 
- if(membership){
-  return bad('You already belong to an organization. A user may belong to only one organization at a time.',409)
+ const alreadyMember=await db.membership.findUnique({
+  where:{
+   userId_organizationId:{
+    userId:user.id,
+    organizationId:invite.organizationId
+   }
+  }
+ })
+ if(alreadyMember){
+  return bad('You are already a member of this organization',409)
  }
 
  const result=await db.$transaction(async tx=>{
@@ -66,6 +75,9 @@ export async function POST(_:Request,{params}:{params:Promise<{id:string}>}){
   })
   return {member,company:invite.organization}
  })
+
+ const cookieStore=await cookies()
+ cookieStore.set(HD_ORG_COOKIE,invite.organizationId,getCookieOptions())
 
  return Response.json({success:true,company:result.company})
 }
@@ -91,4 +103,3 @@ export async function DELETE(_:Request,{params}:{params:Promise<{id:string}>}){
  await db.invitation.update({where:{id:invite.id},data:{status:newStatus}})
  return Response.json({success:true,status:newStatus})
 }
-

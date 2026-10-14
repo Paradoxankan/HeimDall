@@ -43,11 +43,20 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
  if(!member)return bad('User is not a member of this organization',404)
 
  if(member.userId===ctx.user.id)return bad('You cannot change your own role',400)
- if(member.userId===member.organization.createdById)return bad('The organization owner/creator role cannot be changed',403)
 
  const b=await req.json().catch(()=>null)
  const role=b?.role as Role
  if(!['EMPLOYEE','MANAGER','HR','EXECUTIVE'].includes(role))return bad('Invalid role',400)
+
+ // If demoting an executive, verify they are not the sole executive
+ if(member.role==='EXECUTIVE'&&role!=='EXECUTIVE'){
+  const execCount=await db.membership.count({
+   where:{organizationId:ctx.membership.organizationId,role:'EXECUTIVE'}
+  })
+  if(execCount<=1){
+   return bad('Cannot demote the only Executive of this organization. Promote another member to Executive first.',409)
+  }
+ }
 
  const updated=await db.membership.update({
   where:{id:member.id},
@@ -71,7 +80,16 @@ export async function DELETE(_:Request,{params}:{params:Promise<{id:string}>}){
  if(!member)return bad('User is not a member of this organization',404)
 
  if(member.userId===ctx.user.id)return bad('You cannot remove yourself from the organization',400)
- if(member.userId===member.organization.createdById)return bad('The organization owner/creator cannot be removed',403)
+
+ // Safety rule: a user who is the only EXECUTIVE cannot be removed
+ if(member.role==='EXECUTIVE'){
+  const execCount=await db.membership.count({
+   where:{organizationId:ctx.membership.organizationId,role:'EXECUTIVE'}
+  })
+  if(execCount<=1){
+   return bad('Cannot remove the only Executive of this organization. Promote another member to Executive first.',409)
+  }
+ }
 
  if(!can(ctx.membership.role,'member.remove',member.role)){
   return bad(`Forbidden: You do not have permission to remove a member with role ${member.role}`,403)
