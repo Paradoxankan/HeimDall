@@ -315,10 +315,35 @@ export default function HomePage(){
     </div>
 
     <div className="flex items-center gap-3">
+     <div className="relative flex items-center gap-1.5">
+      <select
+       id="home-company-switcher"
+       aria-label="Company switcher"
+       value="personal"
+       disabled={isSwitching}
+       onChange={e=>handleSwitchCompany(e.target.value)}
+       className="field py-1 text-xs font-medium cursor-pointer"
+      >
+       <option value="personal">Personal space</option>
+       {memberships.map((m:any)=>(
+        <option key={m.organizationId} value={m.organizationId}>
+         {m.organizationName}: {ROLES[m.role?.toLowerCase()]||m.role}
+        </option>
+       ))}
+       <option value="__create__">Create a company</option>
+      </select>
+      {isSwitching&&(
+       <span className="flex items-center gap-1 text-[11px] text-mute animate-pulse">
+        <span className="size-2 rounded-full bg-accent animate-ping"/>
+        <span className="hidden sm:inline">Switching...</span>
+       </span>
+      )}
+     </div>
+
      {membership&&(
       <button
        onClick={()=>router.push('/workspace')}
-       className="flex items-center gap-1.5 rounded-md bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/20"
+       className="hidden sm:flex items-center gap-1.5 rounded-md bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/20"
       >
        <Building size={14}/>
        <span>Go to {membership.organizationName}</span>
@@ -381,7 +406,13 @@ export default function HomePage(){
          <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
            <h2 className="text-lg font-semibold">{userData.name}</h2>
-           {membership&&(
+           {memberships.length>0?(
+            memberships.map((m:any)=>(
+             <Chip key={m.organizationId} tone="accent">
+              {m.organizationName} · {m.role}
+             </Chip>
+            ))
+           ):membership&&(
             <Chip tone="accent">
              {membership.organizationName} · {membership.role}
             </Chip>
