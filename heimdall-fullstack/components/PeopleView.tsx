@@ -3,7 +3,7 @@ import {useState,useEffect,useCallback} from 'react'
 import {useWs,fmt,days} from '@/lib/store'
 import {can} from '@/lib/permissions'
 import {Card,Chip,Empty,Head} from './ui'
-import {UserPlus,Mail,Trash2,Copy,Check,Search,Users,Clock,Shield,AlertCircle} from 'lucide-react'
+import {UserPlus,Mail,Trash2,Copy,Check,Search,Users,Clock,Shield,AlertCircle,LogOut} from 'lucide-react'
 import {Role} from '@prisma/client'
 
 const ROLES_DISPLAY:Record<string,string>={
@@ -23,13 +23,18 @@ const ROLE_TONES:Record<string,string>={
 const ALL_INVITABLE_ROLES:Role[]=['HR','MANAGER','EMPLOYEE']
 
 export function PeopleView(){
- const {me,workspace}=useWs()
+ const {me,workspace,leaveCompany,reload}=useWs()
 
  const [members,setMembers]=useState<any[]>([])
  const [invitations,setInvitations]=useState<any[]>([])
  const [loading,setLoading]=useState(true)
  const [q,setQ]=useState('')
  const [roleFilter,setRoleFilter]=useState('ALL')
+
+ // Leave company state
+ const [confirmLeave,setConfirmLeave]=useState(false)
+ const [isLeaving,setIsLeaving]=useState(false)
+ const [leaveErr,setLeaveErr]=useState<string|null>(null)
 
  // Add person form state
  const callerRole=me?.role as Role|undefined
@@ -151,6 +156,28 @@ export function PeopleView(){
   navigator.clipboard.writeText(inviteSuccess.link)
   setCopied(true)
   setTimeout(()=>setCopied(false),3000)
+ }
+
+ const handleLeave=async()=>{
+  setIsLeaving(true)
+  setLeaveErr(null)
+  try{
+   const res=await leaveCompany()
+   if(res?.error){
+    setLeaveErr(res.error)
+   }else{
+    await reload()
+    if(workspace?.companies?.length<=1){
+     window.location.href='/home'
+    }else{
+     window.location.reload()
+    }
+   }
+  }catch{
+   setLeaveErr('Network error. Please try again.')
+  }finally{
+   setIsLeaving(false)
+  }
  }
 
  const filteredMembers=members.filter(m=>{
