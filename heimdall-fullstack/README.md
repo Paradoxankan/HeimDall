@@ -1,15 +1,17 @@
 # HeimDall
 
-> A role-based company workspace where employees, managers, HR and executives manage tasks, projects, leave and contracts with an assistant grounded in their own data.
+> **The digital home of an organization, and also your personal workspace.**  
+> Anyone signs in as an individual with an independent personal workspace. From there, they can establish a new company as Executive or accept invitations to join existing organizations with role-based dashboards for Employee, Manager, HR, and Executive.
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-blue?style=for-the-badge)](https://heimdall-hazel.vercel.app/)
-[![Repo](https://img.shields.io/badge/GitHub-Repo-black?style=for-the-badge&logo=github)](https://github.com/Sumit10Sinha/HeimDall)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-Repo-black?style=for-the-badge&logo=github)](https://github.com/Sumit10Sinha/HeimDall)
+[![Test Suite](https://img.shields.io/badge/Tests-Passing-brightgreen?style=for-the-badge)](./docs/TESTING.md)
 
 ---
 
 ## Preview
 
-| Desktop | Mobile |
+| Desktop Workspace | Mobile View |
 |---|---|
 | <img src="assets/Laptop%20Light%20Mode.png" width="420" alt="Desktop"> | <img src="assets/Phone%20Light%20Mode.jpeg" width="200" alt="Mobile"> |
 
@@ -17,121 +19,216 @@
 
 ## What It Does
 
-Teams lose time chasing status across chats, sheets and documents. HeimDall puts tasks, projects, leave requests and company risk in one signed-in workspace. Each person sees only what their role allows: employees manage their own work, managers see the whole team, HR runs people operations, and executives see company-wide risk and revenue.
+Most tools force you into a corporate silo before you even start. HeimDall works like LinkedIn:
+1. **Personal Workspace (`/home`):** Anyone signs in as an individual. Manage personal tasks, edit your professional profile card (headline, location), chat with Personal AI, and review company invitations.
+2. **Company Registration (`/create-company`):** Launch an organization in seconds. Pick a company name and customized URL handle (`slug`). You are instantly set as **Executive** on the **Starter Plan**.
+3. **Role-Based Company Dashboards (`/workspace`):**
+   - **Executive:** Company overview, risks, revenue charts, contract alerts, and full team directory.
+   - **HR:** Headcount metrics, employee directory, leave approval queue, and employee onboarding.
+   - **Manager:** Team task workload distribution, active project delivery progress, and deadlines.
+   - **Employee:** Assigned tasks, progress tracker, personal updates, and leave request submission.
+4. **Team Management & Invitations:** Executives and HR can invite team members with restricted roles according to the security matrix. Invitations expire in 14 days and can be accepted, declined, or revoked.
 
-## Features
+---
 
-- **Sign in with Google or GitHub**, with sessions that persist across refreshes.
-- **Role-based dashboards** for Employee, Manager, HR and Executive, scoped on the server.
-- **Task CRUD**: add, update status, edit and delete your own tasks, with optimistic updates and rollback.
-- **Leave management**: request, cancel while pending, and HR approve or decline.
-- **Live manager workload chart** that recalculates from the database.
-- **Executive overview** with a risk score, revenue chart and contract alerts computed from data.
-- **HR directory** with live search and an empty state.
-- **Light and dark mode** with smooth transitions, loading states on every async action and designed empty states.
+## Documentation
 
-## Planning Docs
-
-- [PRD](./HeimDall_PRD.md)
-- [Requirements](./HeimDall_Requirements.md)
-- [Architecture](./Architecture.md)
-- [API Spec](./HeimDall_API_Spec.md)
-- [Roadmap](./HeimDall_Roadmap.md)
-
-**Deviations from the plan:** the AI assistant answers from workspace data with keyword matching instead of calling a language model. Contract upload and clause analysis are designed but not built.
+- 📋 **[Manual Testing Checklist & Verification Guide](./docs/TESTING.md)**: Comprehensive manual checklist covering cross-user isolation, company creation, invite lifecycle, and role guards.
+- 📡 **[API Specification](./docs/API_SPEC.md)**: Full REST API specification with endpoints, request/response schemas, status codes, and security matrix.
+- 📐 **[Architecture Overview](./Architecture.md)**: System design and multi-tenant isolation patterns.
 
 ---
 
 ## Architecture
 
 ```
-Browser ──> Next.js on Vercel ──┬─ /app pages and components (React)
-                                ├─ /app/api REST routes ── lib/guard.ts (session + role checks)
-                                └─ Prisma ──> Neon Postgres
-Auth.js (Google, GitHub) ── JWT session cookie ── middleware.ts protects /workspace
+Browser ──> Next.js 15 (App Router) on Vercel
+             ├── /app/home (Personal Workspace)
+             ├── /app/create-company (Company Registration)
+             ├── /app/workspace (Organization Dashboards)
+             │
+             ├── /app/api (REST Endpoints)
+             │    ├── lib/guard.ts (Session + getContext() tenant resolver)
+             │    └── lib/permissions.ts (can(role, action) permission matrix)
+             │
+             └── Prisma 6 ORM ──> Neon Postgres (Serverless Pooler)
 ```
 
-The client loads `/api/bootstrap`, which returns only the data the signed-in user's role may see. Mutations call REST routes that re-check the session and role on the server, validate the input, write through Prisma, then the client refetches.
+### Multi-Tenant Isolation Model
+- **Zero Client Trust:** Every query and mutation derives `organizationId` and permissions strictly from the server-verified active membership (`ctx.membership.organizationId`).
+- **Multi-Organization Membership:** Users can belong to multiple organizations simultaneously with independent roles per tenant (e.g., Executive in Org A, Manager in Org B). Memberships are tracked via `@@unique([userId, organizationId])`.
+- **Active Tenant Tracking (`hd-org` Cookie):** The currently active organization ID is preserved in an HTTP-only, Secure, SameSite=Lax cookie (`hd-org`). The server validates the cookie against the user's verified memberships on every request; if missing, forged, or invalid, it gracefully falls back to their most recently joined organization or personal space (`null`).
+- **Personal vs Organization Data:** Personal tasks have `organizationId = null` and are scoped strictly to `ownerId = user.id`. Company tasks require valid membership and active tenant scoping.
+- **Sole-Executive Safety Invariant:** A user who is the only Executive of an organization cannot leave or be removed (returns `409 Conflict`), ensuring no organization is left orphaned.
+
+---
 
 ## Tech Stack
 
-| Layer | Technology | Why |
+| Layer | Technology | Purpose |
 |---|---|---|
-| Framework | Next.js 15 (App Router) | Pages and API routes in one deployable app |
-| Database | Neon PostgreSQL + Prisma | Relational data, typed queries, migrations |
-| Auth | Auth.js v5 (Google, GitHub) | Secure session cookies, OAuth |
-| Styling | Tailwind CSS v4 | Consistent design tokens, light and dark themes |
-| Deployment | Vercel | Native Next.js hosting |
+| **Framework** | Next.js 15 (App Router) | React Server Components, Route Handlers, Turbopack |
+| **Language** | TypeScript 5.6 | Strict type-safety across client and server |
+| **Database** | Neon Postgres + Prisma 6 | Serverless PostgreSQL with typed schema and migrations |
+| **Authentication** | Auth.js v5 (NextAuth) | OAuth (Google & GitHub) with encrypted JWT session cookies |
+| **Styling** | Tailwind CSS v4 | Dark-first neutral theme, single blue accent, 300ms transition |
+| **Icons & UI** | Lucide React | Minimalist UI icons |
+| **Testing** | Node.js Test Runner + tsx | Native zero-dependency unit and scenario testing |
+
+---
 
 ## Database Schema
 
-| Table | Key columns | Relations |
+```prisma
+enum Role {
+  EXECUTIVE
+  HR
+  MANAGER
+  EMPLOYEE
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  REVOKED
+}
+```
+
+| Table | Key Columns | Description & Multi-Tenant Scoping |
 |---|---|---|
-| User | id, name, email (unique), role, title, dept, joinedAt | has many Task, LeaveRequest, Activity, Account |
-| Account / Session / VerificationToken | Auth.js tables | Account and Session belong to User |
-| Project | id, name (unique), status, pct, lead, deadline | has many Task |
-| Task | id, title, desc, priority, due, status, progress, projectId, assigneeId | belongs to Project and User |
-| Activity | id, who, what, target, at, userId | belongs to User |
-| LeaveRequest | id, userId, type, from, to, status | belongs to User |
-| Risk, Contract, Revenue | executive reporting data | none |
+| **User** | `id`, `name`, `email`, `title`, `city`, `joinedAt` | Personal individual account. Has no global role. |
+| **Organization** | `id`, `name`, `slug` (unique), `createdById`, `plan`, `createdAt` | Company tenant entity. |
+| **Membership** | `id`, `userId`, `organizationId`, `role`, `addedById`, `createdAt` | Links user to an organization with a specific role (`@@unique([userId, organizationId])`). Users can belong to multiple organizations. |
+| **Invitation** | `id`, `organizationId`, `email`, `role`, `token` (unique), `status`, `expiresAt` | 14-day expiring invites for new colleagues scoped to an organization. |
+| **Project** | `id`, `organizationId`, `name`, `status`, `pct`, `lead`, `deadline` | Organization projects. Unique on `[organizationId, name]`. |
+| **Task** | `id`, `organizationId` (nullable), `ownerId`, `assigneeId`, `title`, `status`, `due` | Null `organizationId` = personal task; non-null = scoped company task. |
+| **LeaveRequest** | `id`, `organizationId`, `userId`, `type`, `from`, `to`, `status` | Scoped to organization and requesting user. |
+| **Activity** | `id`, `organizationId`, `userId`, `who`, `what`, `target`, `at` | Recent audit events within the tenant. |
+| **Risk / Contract / Revenue** | `id`, `organizationId`, metrics | Executive reporting data scoped to organization. |
 
-No passwords are stored; authentication is delegated to Google and GitHub.
+---
 
-## API Routes
+## API Routes Summary
 
-| Method | Route | Auth | Description |
+| Method | Endpoint | Required Role / Auth | Description |
 |---|---|---|---|
-| GET | `/api/bootstrap` | Signed in | Data for the current user's role |
-| GET | `/api/tasks` | Signed in | Own tasks (all tasks for manager and executive) |
-| POST | `/api/tasks` | Signed in | Create a task (employees: assigned to themselves) |
-| PATCH | `/api/tasks/:id` | Assignee, manager, executive | Update status, title, priority, due date, progress |
-| DELETE | `/api/tasks/:id` | Assignee, manager, executive | Delete a task |
-| GET | `/api/leave` | Signed in | Own leave requests |
-| POST | `/api/leave` | Signed in | Request leave |
-| PATCH | `/api/leave/:id` | HR, executive | Approve or decline |
-| DELETE | `/api/leave/:id` | Owner | Cancel a pending request |
-| PATCH | `/api/users/:id` | Executive | Change a user's role |
+| `GET` | `/api/bootstrap` | Signed in | Bootstraps workspace state, active company (`hd-org`), user companies list, and tenant data scoped to caller's role |
+| `PATCH` | `/api/me` | Signed in | Updates personal profile headline, name, and location |
+| `GET` | `/api/me/tasks` | Signed in | Lists personal tasks owned by caller (`organizationId: null`) |
+| `POST` | `/api/me/tasks` | Signed in | Creates a new personal task |
+| `PATCH` | `/api/me/tasks/:id` | Owner | Updates status, priority, or due date of own personal task |
+| `DELETE` | `/api/me/tasks/:id` | Owner | Deletes own personal task |
+| `POST` | `/api/orgs` | Signed in | Registers an organization, grants `EXECUTIVE` membership, and sets active `hd-org` cookie (works even if user has other companies; `409` on duplicate slug) |
+| `POST` | `/api/orgs/switch` | Signed in | Switches active organization via `hd-org` cookie (`403` if not a member; `organizationId: null` for personal space) |
+| `POST` | `/api/orgs/leave` | Org member | Leaves active organization (`409 Conflict` if caller is the sole Executive) |
+| `GET` | `/api/orgs/members` | Org member | Lists organization members and active pending invitations |
+| `POST` | `/api/orgs/members/invite` | Executive, HR, Manager | Issues invitation scoped to active org (`403` if role unpermitted; `409` if duplicate pending invite or already member of this org) |
+| `DELETE` | `/api/orgs/members/:id` | Executive, HR | Removes member (`409` if target is sole Executive; Exec removes any; HR removes Employee) |
+| `GET` | `/api/users/:id` | Org member | Fetches member details scoped to active organization |
+| `PATCH` | `/api/users/:id` | Executive | Updates member role |
+| `GET` | `/api/invitations/:id` | Public | Fetches invitation public details by ID or token |
+| `POST` | `/api/invitations/:id/accept` | Signed in invitee | Accepts invitation, creates membership in target org, and sets active `hd-org` cookie |
+| `POST` | `/api/invitations/:id/decline` | Signed in invitee | Declines pending invitation |
+| `POST` | `/api/invitations/:id/revoke` | Executive, HR, Manager | Revokes pending organization invitation |
+| `GET` | `/api/tasks` | Org member | Lists org tasks (Employees: own tasks; Manager/Exec: all org tasks) |
+| `POST` | `/api/tasks` | Org member | Creates org task (Manager/Exec can assign to others) |
+| `PATCH` | `/api/tasks/:id` | Assignee, Manager, Exec | Updates task status or details |
+| `DELETE` | `/api/tasks/:id` | Assignee, Manager, Exec | Deletes task |
+| `GET` | `/api/leave` | Org member | Lists own leave requests |
+| `POST` | `/api/leave` | Org member | Submits a leave request for HR approval |
+| `PATCH` | `/api/leave/:id` | HR, Executive | Approves or declines leave request |
+| `DELETE` | `/api/leave/:id` | Requester | Cancels a pending leave request |
 
-Errors return `{ "error": "message" }` with 400, 401, 403, 404 or 409.
+---
+
+## Authentication & Multi-Tenant Flow
+
+```
+1. Sign In (Google / GitHub)
+   │
+   ├─► Read `hd-org` cookie & load user memberships
+   │     │
+   │     ├─► Cookie is 'personal' OR user has 0 memberships
+   │     │     └──► Redirect to /home (Personal Workspace)
+   │     │            • Manage personal tasks (organizationId: null)
+   │     │            • Edit individual profile card
+   │     │            • Review & accept pending invitations
+   │     │            • Top bar switcher to jump to any joined company
+   │     │            • Button: "Create a company" ──► /create-company
+   │     │
+   │     └─► Valid active company (or fallback to latest joined membership)
+   │           └──► Redirect to /workspace (Organization Workspace)
+   │                  • Top bar displays Organization Switcher dropdown:
+   │                      - Lists all user companies with role ("Acme: Manager", "Beta: Executive")
+   │                      - "Personal space" item
+   │                      - "Create a company" item
+   │                  • Top bar View Switcher (role-permitted dashboard tabs)
+   │                  • Sidebar shows role-authorized views (People for Exec/HR/Mgr)
+   │                  • All data queries scoped strictly to caller's verified organizationId
+```
+
+### Company Switcher & Top Bar Controls
+- **Company Switcher:** Located in the top-left/top-right header. Allows instantaneous switching between companies or personal space via `POST /api/orgs/switch` which sets an HTTP-only, Secure, SameSite=Lax `hd-org` cookie. Shows an inline loading spinner while data refreshes.
+- **Role View Switcher:** Allows members to toggle between dashboard views permitted by their role in the **active company**:
+  - **Executive**: `Executive View`, `Manager View`, `HR View`, `Employee View`
+  - **Manager**: `Manager View`, `Employee View`
+  - **HR**: `HR View`, `Employee View`
+  - **Employee**: Single `Employee View` badge (cannot switch views)
+- **Sole-Executive Protection & Leaving:** In the People table or Workspace settings, users can click **Leave organization** (`POST /api/orgs/leave`). If the caller is the sole Executive of the company, the server rejects the request with `409 Conflict` and prompts them to promote another Executive first. Non-sole executives and other roles can leave cleanly, switching their active context to another company or personal home.
 
 ---
 
 ## Getting Started
 
+### 1. Clone & Install
 ```bash
 git clone https://github.com/Sumit10Sinha/HeimDall.git
-cd HeimDall/heimdall-frontend
+cd HeimDall/heimdall-fullstack
 npm install
-cp .env.example .env.local   # fill in the values below
-npx prisma migrate deploy
-npm run db:seed
-npm run dev
 ```
 
-Edit the emails in `prisma/seed.ts` to your team's real Google or GitHub emails before seeding.
+### 2. Configure Environment
+Copy `.env.example` to `.env.local` and configure your credentials:
+```env
+DATABASE_URL="postgresql://user:password@endpoint-pooler.neon.tech/neondb?sslmode=require"
+DATABASE_URL_UNPOOLED="postgresql://user:password@endpoint.neon.tech/neondb?sslmode=require"
+AUTH_SECRET="your-32-byte-secret"
+AUTH_GOOGLE_ID="google-client-id"
+AUTH_GOOGLE_SECRET="google-client-secret"
+AUTH_GITHUB_ID="github-client-id"
+AUTH_GITHUB_SECRET="github-client-secret"
+```
 
-## Environment Variables
+### 3. Database Migrations
+```bash
+npx prisma migrate deploy
+```
 
-| Variable | Description | Where to Get |
-|---|---|---|
-| `DATABASE_URL` | Pooled Postgres connection string | Neon, via Vercel Storage |
-| `DATABASE_URL_UNPOOLED` | Direct connection used for migrations | Neon, via Vercel Storage |
-| `AUTH_SECRET` | Session signing secret | `npx auth secret` |
-| `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET` | GitHub OAuth app | GitHub, Developer settings |
-| `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` | Google OAuth client | Google Cloud Console, Credentials |
-| `ADMIN_EMAILS` | Emails that become Executive on first sign-in | You choose |
+### 4. Run Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Auth Flow
-
-- **Providers:** Google and GitHub via Auth.js.
-- **Sessions:** a signed JWT in an HTTP-only cookie.
-- **Protected routes:** `middleware.ts` redirects visitors without a session to the landing page; every API route re-verifies the session and role server-side.
-- **Linking:** a person's login attaches to their seeded profile by verified email.
-
-## What I Learned
-
-Replace this section with your own reflection: the hardest full-stack challenge and what you would architect differently.
+### 5. Run Test Suite
+```bash
+npm test
+```
+Runs 19 native unit and scenario verification tests checking the permission matrix, organization slug formatting, multi-tenant security isolation, multi-org switching, per-company roles, and sole-executive protection.
 
 ---
 
-*Submitted to Journey to Mastery — Level 3: Samurai*
+## Verification & Manual Testing Checklist
+
+Refer to **[`docs/TESTING.md`](./docs/TESTING.md)** for step-by-step verification procedures for:
+1. Two personal users cannot see each other's tasks.
+2. User creates a company and becomes Executive.
+3. Executive invites HR, Manager, and Employee.
+4. HR and Manager can invite only Employees, and the server rejects other roles with 403.
+5. A user from another company cannot read this company's data.
+6. An invitation for another email cannot be accepted.
+7. User in two companies sees only the active company's data; active tenant persists in `hd-org` cookie.
+8. Switching to a company the user doesn't belong to returns 403 Forbidden.
+9. Roles and permissions are evaluated per active company.
+10. Sole Executive cannot leave or be removed (409 Conflict), but non-sole executives and members can leave cleanly.

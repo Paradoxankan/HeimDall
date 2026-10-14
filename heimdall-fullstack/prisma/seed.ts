@@ -1,20 +1,145 @@
 import {PrismaClient} from '@prisma/client'
-import data from '../lib/data.json'
-const db=new PrismaClient(),base=Date.parse('2026-10-06'),now=Date.now()
-const shift=(d:string)=>new Date(now+(Date.parse(d)-base))
-// EDIT: use each person's real GitHub/Google primary email so their login links to this profile.
-const EMAIL:any={Ankan:'paradoxankan123@gmail.com',Sumit:'sumit@example.com',Debashis:'debashis@example.com',Swapnil:'swapnil@example.com',Anamitra:'anamitra@example.com'}
-const ROLE:any={Ankan:'EXECUTIVE',Sumit:'MANAGER',Debashis:'HR',Swapnil:'EMPLOYEE',Anamitra:'EMPLOYEE'}
+
+const db=new PrismaClient()
+
 async function main(){
- for(const m of [db.task,db.activity,db.leaveRequest,db.risk,db.contract,db.revenue,db.project])await (m as any).deleteMany()
- const u:any={},p:any={}
- for(const x of data.people){const f={name:x.name,role:ROLE[x.name],title:x.role,dept:x.dept,city:x.city};u[x.name]=await db.user.upsert({where:{email:EMAIL[x.name]},update:f,create:{...f,email:EMAIL[x.name],joinedAt:new Date(x.joined)}})}
- for(const x of data.projects)p[x.name]=await db.project.create({data:{name:x.name,sub:x.sub,status:x.status,pct:x.pct,team:x.team,lead:x.lead,milestone:x.milestone,deadline:shift(x.deadline)}})
- for(const t of data.tasks)await db.task.create({data:{title:t.title,desc:t.desc,priority:t.priority,due:shift(t.due),status:t.status.toUpperCase() as any,progress:t.progress,reason:(t as any).reason,projectId:p[t.project].id,assigneeId:u[t.assignee].id}})
- for(const a of data.activity)await db.activity.create({data:{who:a.who,what:a.what,target:a.target,at:new Date(now-a.min*60000),userId:u[a.who]?.id}})
- for(const l of data.leave)await db.leaveRequest.create({data:{userId:u[l.name].id,type:l.type,from:shift(l.from),to:shift(l.to)}})
- for(const r of data.exec.risks)await db.risk.create({data:{level:r.level,title:r.title,detail:r.detail,dept:r.dept,next:r.next}})
- for(const c of data.exec.contracts)await db.contract.create({data:{name:c.name,due:shift(c.due),note:c.note}})
- for(const [i,r] of data.exec.revenue.entries())await db.revenue.create({data:{month:r.m,product:r.product,services:r.services,sales:r.sales,order:i}})
+ for(const m of [
+  db.activity,
+  db.leaveRequest,
+  db.task,
+  db.project,
+  db.risk,
+  db.contract,
+  db.revenue,
+  db.invitation,
+  db.membership,
+  db.organization
+ ]){
+  await (m as any).deleteMany()
+ }
+
+ let owner=await db.user.findFirst()
+ if(!owner){
+  owner=await db.user.create({
+   data:{
+    name:'HeimDall Admin',
+    email:'admin@heimdall.internal',
+    title:'Founder & Executive',
+    city:'San Francisco'
+   }
+  })
+ }
+
+ const org=await db.organization.create({
+  data:{
+   name:'HeimDall Technologies',
+   slug:'heimdall',
+   createdById:owner.id,
+   plan:'STARTER'
+  }
+ })
+
+ await db.membership.create({
+  data:{
+   userId:owner.id,
+   organizationId:org.id,
+   role:'EXECUTIVE'
+  }
+ })
+
+ const project=await db.project.create({
+  data:{
+   name:'Platform Core',
+   sub:'Digital headquarters & workspace infrastructure',
+   status:'On track',
+   pct:45,
+   team:4,
+   lead:owner.name||'Executive Lead',
+   milestone:'v1.0 Release',
+   deadline:new Date(Date.now()+30*864e5),
+   organizationId:org.id
+  }
+ })
+
+ await db.task.create({
+  data:{
+   title:'Review organization onboarding flows',
+   desc:'Ensure seamless onboarding for personal accounts joining organizations.',
+   priority:'high',
+   due:new Date(Date.now()+3*864e5),
+   status:'PROGRESS',
+   progress:60,
+   organizationId:org.id,
+   ownerId:owner.id,
+   assigneeId:owner.id,
+   projectId:project.id
+  }
+ })
+
+ // Personal task (organizationId = null) for owner's personal workspace
+ await db.task.create({
+  data:{
+   title:'Update personal profile headline and credentials',
+   desc:'Personal workspace task not shared with any organization.',
+   priority:'medium',
+   due:new Date(Date.now()+7*864e5),
+   status:'TODO',
+   progress:0,
+   organizationId:null,
+   ownerId:owner.id
+  }
+ })
+
+ await db.activity.create({
+  data:{
+   who:owner.name||'Admin',
+   what:'created organization',
+   target:org.name,
+   userId:owner.id,
+   organizationId:org.id
+  }
+ })
+
+ await db.risk.create({
+  data:{
+   level:'Medium',
+   title:'Multi-region data latency',
+   detail:'Neon Postgres connection pooling across regions',
+   dept:'Engineering',
+   next:'Configure read replicas and edge caching',
+   organizationId:org.id
+  }
+ })
+
+ await db.contract.create({
+  data:{
+   name:'Cloud Infrastructure Agreement',
+   due:new Date(Date.now()+60*864e5),
+   note:'Annual renewal for core cloud hosting',
+   organizationId:org.id
+  }
+ })
+
+ const months=['Jul','Aug','Sep']
+ for(const [i,m] of months.entries()){
+  await db.revenue.create({
+   data:{
+    month:m,
+    product:45+i*10,
+    services:15+i*5,
+    sales:10+i*2,
+    order:i,
+    organizationId:org.id
+   }
+  })
+ }
+
+ console.log(`Demo seed completed successfully for organization: ${org.name} (${org.slug})`)
 }
-main().then(()=>db.$disconnect()).catch(e=>{console.error(e);process.exit(1)})
+
+main()
+ .then(()=>db.$disconnect())
+ .catch(e=>{
+  console.error(e)
+  process.exit(1)
+ })
