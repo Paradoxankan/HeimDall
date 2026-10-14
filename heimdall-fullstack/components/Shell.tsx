@@ -6,6 +6,7 @@ import {signOut} from 'next-auth/react'
 import {useWs,ROLES,ALLOWED,VIEW_NAMES} from '@/lib/store'
 import {Empty,Chip,Card} from './ui'
 import {PeopleView} from './PeopleView'
+import {ContractsView} from './Contracts'
 
 const NAV:any={
  employee:['Overview','Tasks','Documents','Communication','Reports','Updates'],
@@ -318,6 +319,8 @@ export default function Shell({children}:{children:ReactNode}){
    <main className="mx-auto max-w-6xl p-4 md:p-6">
     {view==='Overview'?children:view==='People'?(
      <PeopleView/>
+    ):view==='Contracts'?(
+     <ContractsView/>
     ):view==='Settings'?(
      <div className="fade space-y-6">
       <Card title="Organization Settings">
