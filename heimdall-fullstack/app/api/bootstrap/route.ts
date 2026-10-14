@@ -8,7 +8,7 @@ const TONE:any={'On track':'ok',Delayed:'warn',Planning:'accent'}
 
 export async function GET(){
  const ctx=await getContext();if(!ctx)return bad('Unauthorized',401)
- const {user,membership,org}=ctx
+ const {user,membership,org,memberships}=ctx
  const isPersonal=!membership
  const R=isPersonal?'EMPLOYEE':membership.role
  const orgId=membership?.organizationId
@@ -167,13 +167,14 @@ export async function GET(){
   workspace:{
    isPersonal,
    activeCompany:org?{id:org.id,name:org.name,slug:org.slug}:null,
-   companies:org?[{
-    id:org.id,
-    name:org.name,
-    slug:org.slug,
-    role:R,
-    title:user.title
-   }]:[],
+   companies:memberships.map(m=>({
+    id:m.organization.id,
+    name:m.organization.name,
+    slug:m.organization.slug,
+    role:m.role,
+    title:user.title,
+    joinedAt:m.createdAt
+   })),
    invitations:pendingInvites.map(i=>({
     id:i.id,
     token:i.token,

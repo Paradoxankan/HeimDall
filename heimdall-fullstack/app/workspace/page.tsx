@@ -15,7 +15,7 @@ export default function Workspace(){
  useEffect(()=>{
   if(ready){
    if(!me)router.replace('/')
-   else if(!workspace?.companies?.length)router.replace('/home')
+   else if(!workspace?.companies?.length||workspace?.isPersonal||!workspace?.activeCompany)router.replace('/home')
   }
  },[ready,me,workspace,router])
 

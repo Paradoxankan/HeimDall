@@ -11,11 +11,26 @@ export type Context = {
  user: ContextUser
  membership: ContextMembership
  org: ContextOrg
+ memberships: (Membership & { organization: Organization })[]
+}
+
+export const HD_ORG_COOKIE = 'hd-org'
+
+export function getCookieOptions() {
+ return {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
+  path: '/',
+  maxAge: 60 * 60 * 24 * 30 // 30 days
+ }
 }
 
 /**
- * Returns { user, membership | null, org | null } for the signed-in user.
- * Returns null if not authenticated or user record is not found.
+ * Returns { user, membership, org, memberships } for the signed-in user.
+ * Active organization is resolved from the HTTP-only 'hd-org' cookie.
+ * Never trusts the cookie value: verifies user membership in that organization.
+ * If cookie is missing or invalid, falls back to most recently joined membership, or null.
  */
 export async function getContext(): Promise<Context | null> {
  const s = await auth()
@@ -25,17 +40,52 @@ export async function getContext(): Promise<Context | null> {
  const user = await db.user.findUnique({
   where: { id },
   include: {
-   membership: {
-    include: { organization: true }
+   memberships: {
+    include: { organization: true },
+    orderBy: { createdAt: 'desc' }
    }
   }
  })
  if (!user) return null
 
+ let cookieOrgId: string | null = null
+ let hasCookie = false
+ try {
+  const { cookies } = await import('next/headers')
+  const cookieStore = await cookies()
+  const c = cookieStore.get(HD_ORG_COOKIE)
+  if (c !== undefined) {
+   hasCookie = true
+   cookieOrgId = c.value
+  }
+ } catch {
+  // Outside of request context (e.g. tests or scripts)
+ }
+
+ let activeMembership: ContextMembership = null
+
+ if (hasCookie && (cookieOrgId === 'personal' || cookieOrgId === '')) {
+  // Explicitly switched to personal space
+  activeMembership = null
+ } else if (hasCookie && cookieOrgId) {
+  // Check caller's verified membership for that organization
+  const match = user.memberships.find(m => m.organizationId === cookieOrgId)
+  if (match) {
+   activeMembership = match
+  } else {
+   // Cookie value invalid (not a member of this org) -> fall back to most recently joined membership
+   activeMembership = user.memberships[0] ?? null
+  }
+ } else {
+  // Cookie missing -> fall back to most recently joined membership, or null if none
+  activeMembership = user.memberships[0] ?? null
+ }
+
  return {
   user,
-  membership: user.membership,
-  org: user.membership?.organization ?? null
+  membership: activeMembership,
+  org: activeMembership?.organization ?? null,
+  memberships: user.memberships
  }
 }
 
@@ -56,7 +106,8 @@ export async function requireOrgContext() {
    membership: ctx.membership,
    org: ctx.org,
    orgId: ctx.membership.organizationId,
-   role: ctx.membership.role
+   role: ctx.membership.role,
+   memberships: ctx.memberships
   }
  }
 }

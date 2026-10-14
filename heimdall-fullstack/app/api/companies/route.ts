@@ -1,5 +1,6 @@
+import {cookies} from 'next/headers'
 import {db} from '@/lib/db'
-import {getContext,bad} from '@/lib/guard'
+import {getContext,bad,HD_ORG_COOKIE,getCookieOptions} from '@/lib/guard'
 
 export const dynamic='force-dynamic'
 
@@ -7,7 +8,7 @@ const slugify=(s:string)=>s.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').repl
 
 export async function GET(){
  const ctx=await getContext();if(!ctx)return bad('Unauthorized',401)
- const {user,membership}=ctx
+ const {user,membership,memberships}=ctx
 
  const pendingInvites=user.email
   ? await db.invitation.findMany({
@@ -20,14 +21,14 @@ export async function GET(){
  const currentOrg=membership?.organization
  return Response.json({
   activeCompanyId:currentOrg?.id||null,
-  companies:currentOrg?[{
-   id:currentOrg.id,
-   name:currentOrg.name,
-   slug:currentOrg.slug,
-   role:membership.role,
+  companies:memberships.map(m=>({
+   id:m.organization.id,
+   name:m.organization.name,
+   slug:m.organization.slug,
+   role:m.role,
    title:user.title,
-   joinedAt:membership.createdAt
-  }]:[],
+   joinedAt:m.createdAt
+  })),
   invitations:pendingInvites.map(i=>({
    id:i.id,
    token:i.token,
@@ -42,8 +43,7 @@ export async function GET(){
 
 export async function POST(req:Request){
  const ctx=await getContext();if(!ctx)return bad('Unauthorized',401)
- const {user,membership}=ctx
- if(membership)return bad('A user may belong to only one organization at a time',409)
+ const {user}=ctx
 
  const b=await req.json().catch(()=>null);if(!b)return bad('Invalid JSON body',400)
  const name=String(b.name||'').trim()
@@ -77,6 +77,9 @@ export async function POST(req:Request){
   }
   return {company:organization,membership:newMembership}
  })
+
+ const cookieStore=await cookies()
+ cookieStore.set(HD_ORG_COOKIE,result.company.id,getCookieOptions())
 
  return Response.json(result,{status:201})
 }

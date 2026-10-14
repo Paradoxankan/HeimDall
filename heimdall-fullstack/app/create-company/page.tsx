@@ -2,7 +2,7 @@
 import {useState,useEffect} from 'react'
 import {useRouter} from 'next/navigation'
 import Link from 'next/link'
-import {Building,ArrowLeft,Sun,Moon,Check,Sparkles} from 'lucide-react'
+import {Building,ArrowLeft,Sun,Moon,Sparkles} from 'lucide-react'
 import {useWs} from '@/lib/store'
 import {Card} from '@/components/ui'
 
@@ -15,7 +15,7 @@ const slugify=(s:string)=>s
 const SLUG_RE=/^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 export default function CreateCompanyPage(){
- const {theme,toggleTheme,reload,workspace,ready,me}=useWs()
+ const {theme,toggleTheme,reload,ready,me}=useWs()
  const router=useRouter()
 
  const [name,setName]=useState('')
@@ -84,8 +84,6 @@ export default function CreateCompanyPage(){
   }
  }
 
- const alreadyHasOrg=Boolean(workspace?.companies?.length)
-
  return (
   <div className="min-h-screen bg-bg">
    {/* Header */}
@@ -109,115 +107,98 @@ export default function CreateCompanyPage(){
    </header>
 
    <main className="mx-auto max-w-xl p-4 pt-12 md:p-8 md:pt-16">
-    {alreadyHasOrg?(
-     <Card title="Organization Found">
-      <div className="space-y-4">
-       <div className="rounded-md border border-warn/30 bg-warn/10 p-4 text-xs text-warn">
-        You already belong to an organization ({workspace.companies[0]?.name}). A user may belong to only one company at a time.
-       </div>
-       <button
-        onClick={()=>router.push('/workspace')}
-        className="w-full rounded-md bg-accent py-2 text-xs font-medium text-white dark:text-[#07101f]"
-       >
-        Go to {workspace.companies[0]?.name} Workspace
-       </button>
+    <div className="fade space-y-6">
+     <div className="text-center">
+      <div className="mx-auto grid size-12 place-items-center rounded-xl bg-accent/10 text-accent">
+       <Building size={24}/>
       </div>
-     </Card>
-    ):(
-     <div className="fade space-y-6">
-      <div className="text-center">
-       <div className="mx-auto grid size-12 place-items-center rounded-xl bg-accent/10 text-accent">
-        <Building size={24}/>
-       </div>
-       <h1 className="mt-4 text-2xl font-semibold tracking-tight">Create your company</h1>
-       <p className="mx-auto mt-1 max-w-sm text-xs text-mute">
-        Establish the digital home of your organization. You will be assigned as Executive and can invite team members.
-       </p>
-      </div>
+      <h1 className="mt-4 text-2xl font-semibold tracking-tight">Create your company</h1>
+      <p className="mx-auto mt-1 max-w-sm text-xs text-mute">
+       Establish the digital home of your organization. You will be assigned as Executive and can invite team members.
+      </p>
+     </div>
 
-      <Card title="Company Information">
-       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-         <label htmlFor="company-name" className="block text-xs font-medium">
-          Company Name <span className="text-bad">*</span>
-         </label>
+     <Card title="Company Information">
+      <form onSubmit={handleSubmit} className="space-y-4">
+       <div>
+        <label htmlFor="company-name" className="block text-xs font-medium">
+         Company Name <span className="text-bad">*</span>
+        </label>
+        <input
+         id="company-name"
+         className="field mt-1 w-full text-sm"
+         placeholder="e.g. Acme Corporation"
+         value={name}
+         onChange={e=>handleNameChange(e.target.value)}
+         maxLength={60}
+         autoFocus
+        />
+        {err.name?(
+         <p role="alert" className="mt-1 text-xs text-bad">{err.name}</p>
+        ):(
+         <p className="mt-1 text-[11px] text-mute">3 to 60 characters.</p>
+        )}
+       </div>
+
+       <div>
+        <label htmlFor="company-slug" className="block text-xs font-medium">
+         Organization Handle (URL slug) <span className="text-bad">*</span>
+        </label>
+        <div className="mt-1 flex items-center rounded-md border border-line bg-surface px-2.5">
+         <span className="text-xs text-mute">heimdall.app/</span>
          <input
-          id="company-name"
-          className="field mt-1 w-full text-sm"
-          placeholder="e.g. Acme Corporation"
-          value={name}
-          onChange={e=>handleNameChange(e.target.value)}
-          maxLength={60}
-          autoFocus
+          id="company-slug"
+          className="w-full bg-transparent py-1.5 pl-1 text-sm outline-none"
+          placeholder="acme-corp"
+          value={slug}
+          onChange={e=>handleSlugChange(e.target.value)}
+          maxLength={40}
          />
-         {err.name?(
-          <p role="alert" className="mt-1 text-xs text-bad">{err.name}</p>
-         ):(
-          <p className="mt-1 text-[11px] text-mute">3 to 60 characters.</p>
-         )}
         </div>
-
-        <div>
-         <label htmlFor="company-slug" className="block text-xs font-medium">
-          Organization Handle (URL slug) <span className="text-bad">*</span>
-         </label>
-         <div className="mt-1 flex items-center rounded-md border border-line bg-surface px-2.5">
-          <span className="text-xs text-mute">heimdall.app/</span>
-          <input
-           id="company-slug"
-           className="w-full bg-transparent py-1.5 pl-1 text-sm outline-none"
-           placeholder="acme-corp"
-           value={slug}
-           onChange={e=>handleSlugChange(e.target.value)}
-           maxLength={40}
-          />
-         </div>
-         {err.slug?(
-          <p role="alert" className="mt-1 text-xs text-bad">{err.slug}</p>
-         ):(
-          <p className="mt-1 text-[11px] text-mute">
-           Unique identifier: lowercase letters, numbers, and dashes.
-          </p>
-         )}
-        </div>
-
-        {err.form&&(
-         <p role="alert" className="rounded-md border border-bad/30 bg-bad/10 p-2.5 text-xs text-bad">
-          {err.form}
+        {err.slug?(
+         <p role="alert" className="mt-1 text-xs text-bad">{err.slug}</p>
+        ):(
+         <p className="mt-1 text-[11px] text-mute">
+          Unique identifier: lowercase letters, numbers, and dashes.
          </p>
         )}
+       </div>
 
-        <div className="rounded-md border border-line bg-bg/50 p-3 text-xs">
-         <div className="flex items-center gap-2 font-medium text-ink">
-          <Sparkles size={14} className="text-accent"/>
-          <span>Starter Plan Included</span>
-         </div>
-         <p className="mt-1 text-[11px] text-mute">
-          Includes team task management, department boards, and initial company metrics.
-         </p>
-        </div>
+       {err.form&&(
+        <p role="alert" className="rounded-md border border-bad/30 bg-bad/10 p-2.5 text-xs text-bad">
+         {err.form}
+        </p>
+       )}
 
-        <div className="flex items-center justify-end gap-2 pt-2">
-         <Link
-          href="/home"
-          className="rounded-md border border-line px-4 py-2 text-xs font-medium text-mute hover:bg-surface"
-         >
-          Cancel
-         </Link>
-         <button
-          type="submit"
-          disabled={isSubmitting}
-          className="rounded-md bg-accent px-5 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60 dark:text-[#07101f]"
-         >
-          {isSubmitting?'Creating organization...':'Create Company'}
-         </button>
+       <div className="rounded-md border border-line bg-bg/50 p-3 text-xs">
+        <div className="flex items-center gap-2 font-medium text-ink">
+         <Sparkles size={14} className="text-accent"/>
+         <span>Starter Plan Included</span>
         </div>
-       </form>
-      </Card>
-     </div>
-    )}
+        <p className="mt-1 text-[11px] text-mute">
+         Includes team task management, department boards, and initial company metrics.
+        </p>
+       </div>
+
+       <div className="flex items-center justify-end gap-2 pt-2">
+        <Link
+         href="/home"
+         className="rounded-md border border-line px-4 py-2 text-xs font-medium text-mute hover:bg-surface"
+        >
+         Cancel
+        </Link>
+        <button
+         type="submit"
+         disabled={isSubmitting}
+         className="rounded-md bg-accent px-5 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60 dark:text-[#07101f]"
+        >
+         {isSubmitting?'Creating organization...':'Create Company'}
+        </button>
+       </div>
+      </form>
+     </Card>
+    </div>
    </main>
   </div>
  )
 }
-

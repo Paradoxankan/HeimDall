@@ -1,10 +1,10 @@
 'use client'
 import {useState,ReactNode} from 'react'
 import {useRouter} from 'next/navigation'
-import {Sun,Moon,Menu,Settings,LogOut,Building,User,Plus,Check,X,Mail} from 'lucide-react'
+import {Sun,Moon,Menu,Settings,LogOut,Building,Plus,Check,X,Mail,Loader2,AlertCircle} from 'lucide-react'
 import {signOut} from 'next-auth/react'
 import {useWs,ROLES,ALLOWED,VIEW_NAMES} from '@/lib/store'
-import {Empty,Chip} from './ui'
+import {Empty,Chip,Card} from './ui'
 import {PeopleView} from './PeopleView'
 
 const NAV:any={
@@ -23,11 +23,14 @@ export default function Shell({children}:{children:ReactNode}){
   me,
   workspace,
   switchWorkspace,
+  leaveCompany,
   createCompany,
   acceptInvitation,
   declineInvitation,
+  reload,
   busy,
-  notice
+  notice,
+  setNotice
  }=useWs()
 
  const router=useRouter()
@@ -36,6 +39,9 @@ export default function Shell({children}:{children:ReactNode}){
  const [showCreateModal,setShowCreateModal]=useState(false)
  const [newCo,setNewCo]=useState({name:'',slug:'',title:''})
  const [formErr,setFormErr]=useState<any>({})
+ const [switching,setSwitching]=useState(false)
+ const [isLeaving,setIsLeaving]=useState(false)
+ const [leaveErr,setLeaveErr]=useState<string|null>(null)
 
  const out=()=>signOut({callbackUrl:'/'})
 
@@ -53,6 +59,8 @@ export default function Shell({children}:{children:ReactNode}){
   }else{
    setNewCo({name:'',slug:'',title:''})
    setShowCreateModal(false)
+   await reload()
+   router.push('/workspace')
   }
  }
 
@@ -63,10 +71,49 @@ export default function Shell({children}:{children:ReactNode}){
    router.push('/create-company')
    return
   }
-  if(val==='personal'){
-   router.push('/home')
-  }else{
-   await switchWorkspace(val)
+  setSwitching(true)
+  try{
+   if(val==='personal'){
+    await switchWorkspace(null)
+    await reload()
+    router.push('/home')
+   }else{
+    await switchWorkspace(val)
+    await reload()
+    if(window.location.pathname.startsWith('/home')){
+     router.push('/workspace')
+    }
+   }
+  }catch{
+   // Handled gracefully
+  }finally{
+   setSwitching(false)
+  }
+ }
+
+ const handleLeaveActiveCompany=async()=>{
+  if(!window.confirm(`Are you sure you want to leave ${workspace?.activeCompany?.name||'this organization'}?`)){
+   return
+  }
+  setIsLeaving(true)
+  setLeaveErr(null)
+  try{
+   const res=await leaveCompany()
+   if(res?.error){
+    setLeaveErr(res.error)
+    setNotice(res.error)
+   }else{
+    await reload()
+    if(workspace?.companies?.length<=1){
+     router.push('/home')
+    }else{
+     router.push('/workspace')
+    }
+   }
+  }catch{
+   setLeaveErr('Network error. Please try again.')
+  }finally{
+   setIsLeaving(false)
   }
  }
 
@@ -80,21 +127,23 @@ export default function Shell({children}:{children:ReactNode}){
 
    {/* Workspace Switcher in sidebar */}
    <div className="px-3 pb-3">
-    <label className="mb-1 block text-xs font-medium text-[#7F8CA6]">WORKSPACE</label>
+    <label htmlFor="sidebar-workspace-switcher" className="mb-1 block text-xs font-medium text-[#7F8CA6]">WORKSPACE</label>
     <div className="relative">
      <select
+      id="sidebar-workspace-switcher"
       aria-label="Workspace switcher"
       value={activeCompanyId}
+      disabled={switching}
       onChange={e=>handleWorkspaceChange(e.target.value)}
-      className="w-full rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-[#B9C4D8] outline-none hover:bg-white/10 focus:border-accent"
+      className="w-full rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-[#B9C4D8] outline-none hover:bg-white/10 focus:border-accent disabled:opacity-60"
      >
-      <option value="personal">👤 Personal Workspace</option>
+      <option value="personal">Personal space</option>
       {workspace?.companies?.map((c:any)=>(
        <option key={c.id} value={c.id}>
-        🏢 {c.name} ({ROLES[c.role.toLowerCase()]||c.role})
+        {c.name}: {ROLES[c.role?.toLowerCase()]||c.role}
        </option>
       ))}
-      <option value="__create__">+ Create new company...</option>
+      <option value="__create__">Create a company</option>
      </select>
     </div>
    </div>
@@ -153,20 +202,32 @@ export default function Shell({children}:{children:ReactNode}){
      </span>
     </div>
 
+    {/* Top bar Company Switcher Dropdown */}
     <div className="ml-auto flex items-center gap-2">
-     {/* Mobile/Compact workspace switcher */}
-     <select
-      aria-label="Switch workspace"
-      value={activeCompanyId}
-      onChange={e=>handleWorkspaceChange(e.target.value)}
-      className="field py-1 sm:hidden text-xs"
-     >
-      <option value="personal">👤 Personal</option>
-      {workspace?.companies?.map((c:any)=>(
-       <option key={c.id} value={c.id}>🏢 {c.name}</option>
-      ))}
-      <option value="__create__">+ Company</option>
-     </select>
+     <div className="relative flex items-center gap-1.5">
+      <select
+       id="topbar-company-switcher"
+       aria-label="Company switcher"
+       value={activeCompanyId}
+       disabled={switching}
+       onChange={e=>handleWorkspaceChange(e.target.value)}
+       className="field py-1 text-xs font-medium cursor-pointer"
+      >
+       <option value="personal">Personal space</option>
+       {workspace?.companies?.map((c:any)=>(
+        <option key={c.id} value={c.id}>
+         {c.name}: {ROLES[c.role?.toLowerCase()]||c.role}
+        </option>
+       ))}
+       <option value="__create__">Create a company</option>
+      </select>
+      {switching&&(
+       <span className="flex items-center gap-1 text-[11px] text-mute animate-pulse">
+        <Loader2 size={13} className="animate-spin text-accent"/>
+        <span className="hidden sm:inline">Switching...</span>
+       </span>
+      )}
+     </div>
 
      {/* Allowed views switcher within current company */}
      {!workspace?.isPersonal&&ALLOWED[me?.role]&&(
@@ -257,6 +318,46 @@ export default function Shell({children}:{children:ReactNode}){
    <main className="mx-auto max-w-6xl p-4 md:p-6">
     {view==='Overview'?children:view==='People'?(
      <PeopleView/>
+    ):view==='Settings'?(
+     <div className="fade space-y-6">
+      <Card title="Organization Settings">
+       <div className="space-y-4">
+        <div>
+         <h4 className="text-sm font-semibold text-ink">{workspace?.activeCompany?.name||'Personal Workspace'}</h4>
+         <p className="text-xs text-mute">
+          Handle: {workspace?.activeCompany?.slug||'personal'} · Your role: {workspace?.isPersonal?'Individual':(ROLES[role]||role)}
+         </p>
+        </div>
+
+        {!workspace?.isPersonal&&workspace?.activeCompany&&(
+         <div className="border-t border-line pt-4">
+          <h5 className="text-xs font-medium text-bad">Danger Zone</h5>
+          <p className="mt-1 text-xs text-mute">
+           Leave this organization. Your membership will be removed while preserving company projects and tasks.
+          </p>
+
+          {leaveErr&&(
+           <div className="mt-2 flex items-center gap-2 rounded-md border border-bad/40 bg-bad/10 p-2.5 text-xs text-bad">
+            <AlertCircle size={14} className="shrink-0"/>
+            <span>{leaveErr}</span>
+           </div>
+          )}
+
+          <div className="mt-3">
+           <button
+            onClick={handleLeaveActiveCompany}
+            disabled={isLeaving}
+            className="flex items-center gap-1.5 rounded-md border border-bad/40 bg-bad/10 px-3 py-1.5 text-xs font-medium text-bad hover:bg-bad hover:text-white transition-colors disabled:opacity-60"
+           >
+            <LogOut size={14}/>
+            <span>{isLeaving?'Leaving...':'Leave this organization'}</span>
+           </button>
+          </div>
+         </div>
+        )}
+       </div>
+      </Card>
+     </div>
     ):(
      <Empty dashed title={`${view} isn't part of this release`} hint="This section is planned for the next milestone. Your Overview is fully working."/>
     )}

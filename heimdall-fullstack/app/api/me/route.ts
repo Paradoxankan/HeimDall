@@ -5,7 +5,7 @@ export const dynamic='force-dynamic'
 
 export async function GET(){
  const ctx=await getContext();if(!ctx)return bad('Unauthorized',401)
- const {user,membership,org}=ctx
+ const {user,membership,org,memberships}=ctx
 
  const pendingInvites=user.email
   ? await db.invitation.findMany({
@@ -31,6 +31,13 @@ export async function GET(){
    organizationName:org?.name,
    organizationSlug:org?.slug
   }:null,
+  memberships:memberships.map(m=>({
+   role:m.role,
+   organizationId:m.organizationId,
+   organizationName:m.organization.name,
+   organizationSlug:m.organization.slug,
+   joinedAt:m.createdAt
+  })),
   invitations:pendingInvites.map(i=>({
    id:i.id,
    token:i.token,

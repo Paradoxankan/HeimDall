@@ -23,14 +23,19 @@ export async function DELETE(_:Request,{params}:{params:Promise<{id:string}>}){
   return bad('Member not found in this organization',404)
  }
 
- // Prevent removing self from here
+ // Prevent removing self from here (use leave action instead)
  if(targetMember.userId===ctx.user.id){
   return bad('You cannot remove yourself from the organization here',400)
  }
 
- // Prevent removing organization creator
- if(targetMember.userId===targetMember.organization.createdById){
-  return bad('The organization owner/creator cannot be removed',403)
+ // Safety rule: a user who is the only EXECUTIVE cannot be removed
+ if(targetMember.role==='EXECUTIVE'){
+  const execCount=await db.membership.count({
+   where:{organizationId:orgId,role:'EXECUTIVE'}
+  })
+  if(execCount<=1){
+   return bad('Cannot remove the only Executive of this organization. Promote another member to Executive first.',409)
+  }
  }
 
  // Verify permissions: EXECUTIVE can remove any, HR can remove EMPLOYEE only
@@ -42,4 +47,3 @@ export async function DELETE(_:Request,{params}:{params:Promise<{id:string}>}){
 
  return Response.json({success:true,message:'Member removed successfully'})
 }
-

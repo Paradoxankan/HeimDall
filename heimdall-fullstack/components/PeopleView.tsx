@@ -3,7 +3,7 @@ import {useState,useEffect,useCallback} from 'react'
 import {useWs,fmt,days} from '@/lib/store'
 import {can} from '@/lib/permissions'
 import {Card,Chip,Empty,Head} from './ui'
-import {UserPlus,Mail,Trash2,Copy,Check,Search,Users,Clock,Shield,AlertCircle} from 'lucide-react'
+import {UserPlus,Mail,Trash2,Copy,Check,Search,Users,Clock,Shield,AlertCircle,LogOut} from 'lucide-react'
 import {Role} from '@prisma/client'
 
 const ROLES_DISPLAY:Record<string,string>={
@@ -23,13 +23,18 @@ const ROLE_TONES:Record<string,string>={
 const ALL_INVITABLE_ROLES:Role[]=['HR','MANAGER','EMPLOYEE']
 
 export function PeopleView(){
- const {me,workspace}=useWs()
+ const {me,workspace,leaveCompany,reload}=useWs()
 
  const [members,setMembers]=useState<any[]>([])
  const [invitations,setInvitations]=useState<any[]>([])
  const [loading,setLoading]=useState(true)
  const [q,setQ]=useState('')
  const [roleFilter,setRoleFilter]=useState('ALL')
+
+ // Leave company state
+ const [confirmLeave,setConfirmLeave]=useState(false)
+ const [isLeaving,setIsLeaving]=useState(false)
+ const [leaveErr,setLeaveErr]=useState<string|null>(null)
 
  // Add person form state
  const callerRole=me?.role as Role|undefined
@@ -153,6 +158,28 @@ export function PeopleView(){
   setTimeout(()=>setCopied(false),3000)
  }
 
+ const handleLeave=async()=>{
+  setIsLeaving(true)
+  setLeaveErr(null)
+  try{
+   const res=await leaveCompany()
+   if(res?.error){
+    setLeaveErr(res.error)
+   }else{
+    await reload()
+    if(workspace?.companies?.length<=1){
+     window.location.href='/home'
+    }else{
+     window.location.reload()
+    }
+   }
+  }catch{
+   setLeaveErr('Network error. Please try again.')
+  }finally{
+   setIsLeaving(false)
+  }
+ }
+
  const filteredMembers=members.filter(m=>{
   const matchesRole=roleFilter==='ALL'||m.role===roleFilter
   const query=q.trim().toLowerCase()
@@ -207,6 +234,12 @@ export function PeopleView(){
        </div>
       }
      >
+      {leaveErr&&(
+       <div className="mb-4 flex items-center gap-2 rounded-md border border-bad/40 bg-bad/10 p-3 text-xs text-bad">
+        <AlertCircle size={15} className="shrink-0"/>
+        <span>{leaveErr}</span>
+       </div>
+      )}
       {loading?(
        <div className="space-y-3 py-6">
         <div className="h-4 w-3/4 animate-pulse rounded bg-line"/>
@@ -289,7 +322,32 @@ export function PeopleView(){
                m.isCreator?(
                 <span className="text-[11px] text-mute">Owner</span>
                ):m.userId===me?.id?(
-                <span className="text-[11px] text-mute">Self</span>
+                confirmLeave?(
+                 <div className="flex items-center justify-end gap-1.5">
+                  <button
+                   onClick={handleLeave}
+                   disabled={isLeaving}
+                   className="rounded bg-bad px-2 py-0.5 text-[11px] text-white disabled:opacity-60"
+                  >
+                   {isLeaving?'Leaving...':'Confirm'}
+                  </button>
+                  <button
+                   onClick={()=>setConfirmLeave(false)}
+                   className="rounded border border-line px-2 py-0.5 text-[11px] text-mute hover:bg-surface"
+                  >
+                   Cancel
+                  </button>
+                 </div>
+                ):(
+                 <button
+                  onClick={()=>setConfirmLeave(true)}
+                  className="inline-flex items-center gap-1 text-xs text-mute hover:text-bad"
+                  title="Leave this organization"
+                 >
+                  <LogOut size={13}/>
+                  <span>Leave</span>
+                 </button>
+                )
                ):(
                 <span className="text-[11px] text-mute">—</span>
                )

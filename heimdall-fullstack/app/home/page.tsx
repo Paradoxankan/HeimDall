@@ -21,7 +21,7 @@ import {
  ArrowRight,
  Bot
 } from 'lucide-react'
-import {useWs,due,fmt} from '@/lib/store'
+import {useWs,due,fmt,ROLES} from '@/lib/store'
 import {Card,Chip,Empty} from '@/components/ui'
 
 const PR_TONE:any={high:'warn',medium:'accent',low:'mute'}
@@ -36,6 +36,8 @@ export default function HomePage(){
  const [tasks,setTasks]=useState<any[]>([])
  const [invitations,setInvitations]=useState<any[]>([])
  const [membership,setMembership]=useState<any>(null)
+ const [memberships,setMemberships]=useState<any[]>([])
+ const [isSwitching,setIsSwitching]=useState(false)
 
  // Profile edit state
  const [isEditingProfile,setIsEditingProfile]=useState(false)
@@ -79,6 +81,7 @@ export default function HomePage(){
 
    setUserData(jMe.user)
    setMembership(jMe.membership)
+   setMemberships(jMe.memberships||[])
    setInvitations(jMe.invitations||[])
    setTasks(jTasks||[])
    setProfileForm({
@@ -122,6 +125,30 @@ export default function HomePage(){
    setProfileErr({form:'Network error. Please try again.'})
   }finally{
    setIsSavingProfile(false)
+  }
+ }
+
+ const handleSwitchCompany=async(val:string)=>{
+  if(val==='__create__'){
+   router.push('/create-company')
+   return
+  }
+  if(val==='personal')return
+  setIsSwitching(true)
+  try{
+   const r=await fetch('/api/orgs/switch',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({organizationId:val})
+   })
+   if(r.ok){
+    await reload()
+    router.push('/workspace')
+   }
+  }catch{
+   // handled
+  }finally{
+   setIsSwitching(false)
   }
  }
 
@@ -288,10 +315,35 @@ export default function HomePage(){
     </div>
 
     <div className="flex items-center gap-3">
+     <div className="relative flex items-center gap-1.5">
+      <select
+       id="home-company-switcher"
+       aria-label="Company switcher"
+       value="personal"
+       disabled={isSwitching}
+       onChange={e=>handleSwitchCompany(e.target.value)}
+       className="field py-1 text-xs font-medium cursor-pointer"
+      >
+       <option value="personal">Personal space</option>
+       {memberships.map((m:any)=>(
+        <option key={m.organizationId} value={m.organizationId}>
+         {m.organizationName}: {ROLES[m.role?.toLowerCase()]||m.role}
+        </option>
+       ))}
+       <option value="__create__">Create a company</option>
+      </select>
+      {isSwitching&&(
+       <span className="flex items-center gap-1 text-[11px] text-mute animate-pulse">
+        <span className="size-2 rounded-full bg-accent animate-ping"/>
+        <span className="hidden sm:inline">Switching...</span>
+       </span>
+      )}
+     </div>
+
      {membership&&(
       <button
        onClick={()=>router.push('/workspace')}
-       className="flex items-center gap-1.5 rounded-md bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/20"
+       className="hidden sm:flex items-center gap-1.5 rounded-md bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/20"
       >
        <Building size={14}/>
        <span>Go to {membership.organizationName}</span>
@@ -354,7 +406,13 @@ export default function HomePage(){
          <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
            <h2 className="text-lg font-semibold">{userData.name}</h2>
-           {membership&&(
+           {memberships.length>0?(
+            memberships.map((m:any)=>(
+             <Chip key={m.organizationId} tone="accent">
+              {m.organizationName} · {m.role}
+             </Chip>
+            ))
+           ):membership&&(
             <Chip tone="accent">
              {membership.organizationName} · {membership.role}
             </Chip>
