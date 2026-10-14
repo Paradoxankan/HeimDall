@@ -116,10 +116,42 @@ async function main(){
   data:{
    name:'Cloud Infrastructure Agreement',
    party:'CloudHost Inc.',
-   summary:'Annual cloud hosting and infrastructure services agreement.',
-   due:new Date(Date.now()+60*864e5),
+   summary:'Annual cloud hosting and infrastructure services agreement with 99.95% uptime SLA, quarterly billing, and SOC2 compliance obligations.',
+   due:new Date(Date.now()+14*864e5),
    note:'Annual renewal for core cloud hosting',
-   organizationId:org.id
+   organizationId:org.id,
+   obligations:{
+    create:[
+     {
+      text:'Pay Q4 cloud infrastructure invoice ($12,500)',
+      owner:'us',
+      kind:'payment',
+      due:new Date(Date.now()+14*864e5),
+      priority:'high'
+     },
+     {
+      text:'Provide annual SOC2 Type II compliance audit report',
+      owner:'counterparty',
+      kind:'compliance',
+      due:new Date(Date.now()+30*864e5),
+      priority:'medium'
+     },
+     {
+      text:'Deliver quarterly 99.95% uptime SLA performance review',
+      owner:'counterparty',
+      kind:'deliverable',
+      due:new Date(Date.now()+45*864e5),
+      priority:'low'
+     },
+     {
+      text:'Submit 60-day renewal notice or cancellation for year 2',
+      owner:'both',
+      kind:'renewal',
+      due:new Date(Date.now()+60*864e5),
+      priority:'high'
+     }
+    ]
+   }
   }
  })
 
