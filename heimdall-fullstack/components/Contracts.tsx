@@ -10,7 +10,8 @@ import {
   Calendar,
   Building2,
   ArrowRight,
-  Loader2
+  Loader2,
+  Plus
 } from 'lucide-react'
 import {useWs,due,fmt} from '@/lib/store'
 import {Card,Chip,Empty,Head} from './ui'
@@ -448,3 +449,4 @@ export function ContractsView(){
     </div>
   )
 }
+
