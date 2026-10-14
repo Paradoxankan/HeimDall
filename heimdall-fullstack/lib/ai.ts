@@ -301,3 +301,4 @@ CRITICAL INSTRUCTIONS:
 
   throw lastError || new Error('Unknown error during contract extraction')
 }
+

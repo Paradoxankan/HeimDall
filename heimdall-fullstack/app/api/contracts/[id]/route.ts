@@ -46,3 +46,4 @@ export async function DELETE(
 
   return Response.json({ ok: true, deletedId: contract.id })
 }
+
