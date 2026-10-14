@@ -134,7 +134,7 @@ export async function GET(){
   ])
   const W:any={Critical:3,Medium:2,Low:1},T:any={Critical:'bad',Medium:'warn',Low:'ok'}
   const open=tasks.filter(t=>t.status!=='DONE'),late=open.filter(t=>t.due<new Date()),blocked=tasks.filter(t=>t.status==='BLOCKED').length
-  const delayed=projects.filter(p=>p.status==='Delayed').map(p=>p.name),soon=contracts.filter(c=>c.due.getTime()-Date.now()<7*864e5).length
+  const delayed=projects.filter(p=>p.status==='Delayed').map(p=>p.name),soon=contracts.filter(c=>c.due&&c.due.getTime()-Date.now()<7*864e5).length
   data.exec={
    score:Math.min(10,risks.reduce((n,r)=>n+(W[r.level]||0),0)),
    compliance:open.length?Math.round(100-late.length/open.length*100):100,
@@ -144,7 +144,7 @@ export async function GET(){
     soon?`${soon} contract${soon>1?'s are':' is'} due within a week.`:'No contracts are due this week.'
    ],
    risks:risks.map(r=>({level:r.level,tone:T[r.level],title:r.title,detail:r.detail,dept:r.dept,next:r.next})),
-   contracts:contracts.map(c=>({name:c.name,due:iso(c.due),note:c.note})),
+   contracts:contracts.map(c=>({name:c.name,party:c.party,due:c.due?iso(c.due):null,note:c.note||c.summary})),
    revenue:rev.map(r=>({m:r.month,product:r.product,services:r.services,sales:r.sales}))
   }
  }

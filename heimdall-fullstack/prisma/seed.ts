@@ -9,6 +9,7 @@ async function main(){
   db.task,
   db.project,
   db.risk,
+  (db as any).obligation,
   db.contract,
   db.revenue,
   db.invitation,
@@ -114,6 +115,8 @@ async function main(){
  await db.contract.create({
   data:{
    name:'Cloud Infrastructure Agreement',
+   party:'CloudHost Inc.',
+   summary:'Annual cloud hosting and infrastructure services agreement.',
    due:new Date(Date.now()+60*864e5),
    note:'Annual renewal for core cloud hosting',
    organizationId:org.id

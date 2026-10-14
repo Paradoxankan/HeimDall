@@ -48,6 +48,7 @@ model User {
   assignedTasks Task[]         @relation("AssignedTasks")
   leave         LeaveRequest[]
   activity      Activity[]
+  uploadedContracts Contract[] @relation("UploadedContracts")
 }
 
 model Account {
@@ -223,12 +224,35 @@ model Risk {
 model Contract {
   id             String       @id @default(cuid())
   name           String
-  due            DateTime
-  note           String
+  due            DateTime?
+  note           String       @default("")
+  party          String?
+  summary        String       @default("")
+  fileName       String?
+  uploadedById   String?
+  uploadedBy     User?        @relation("UploadedContracts", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt      DateTime     @default(now())
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  obligations    Obligation[]
 
   @@index([organizationId])
+  @@index([uploadedById])
+}
+
+model Obligation {
+  id         String    @id @default(cuid())
+  contractId String
+  contract   Contract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  text       String
+  owner      String    // "us" | "counterparty" | "both"
+  kind       String    // "payment" | "deliverable" | "renewal" | "notice" | "compliance" | "other"
+  due        DateTime?
+  priority   String    // "high" | "medium" | "low"
+  taskId     String?   @unique
+  createdAt  DateTime  @default(now())
+
+  @@index([contractId])
 }
 
 model Revenue {
