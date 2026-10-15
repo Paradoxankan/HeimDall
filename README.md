@@ -15,7 +15,7 @@ Companies often manage important information across spreadsheets, chat messages,
 | | |
 |---|---|
 | 🌐 **Live demo** | https://heim-dall-10.vercel.app/ |
-|💻 Repository	|https://github.com/Sumit10Sinha/HeimDall |
+|💻 Repository	|https://github.com/Paradoxankan/HeimDall |
 ---
 
 ## Previews
@@ -28,8 +28,8 @@ Companies often manage important information across spreadsheets, chat messages,
 ---
 
 ## What It Does
-
-HeimDall brings a company's day-to-day work into one workspace. The landing page works as an access gate: pick a persona and the whole UI, navigation and data re-render for that role.
+ 
+Growing companies run on scattered tools: contracts live in PDFs, tasks in one app, leave requests in email, and nobody has a single view of what is at risk. HeimDall gives employees, managers, HR and executives one workspace, each with a dashboard built for their role. Its AI layer reads uploaded contracts, extracts the obligations and deadlines hidden in them, and turns those obligations into tracked tasks, so nothing that was promised gets forgotten.
 
 **Four role-based dashboards**
 
@@ -38,15 +38,19 @@ HeimDall brings a company's day-to-day work into one workspace. The landing page
 - **HR:** an employee directory with live, keystroke-by-keystroke search.
 - **Executive:** organization-wide overview with a weekly AI company summary, overall risk score, key risks, contract alerts, revenue reports and items requiring attention.
 
-**Key user flows**
-
-1. Choose a persona on the landing page (Employee, Manager, HR or Executive).
-2. Update a task status as an employee; the manager's workload chart recalculates instantly from the shared state.
-3. Switch dashboards at any time with the role toggles in the top-right bar, with no logout needed.
-4. Search the HR directory; a nonexistent name shows a clean empty state.
-5. Ask the Heimdall AI assistant a question and watch the loading state before the response appears.
-6. Sign out from any dashboard to clear the session and return to the landing page.
-
+---
+ 
+## Features
+ 
+- **Role-based dashboards**: separate Employee, Manager, HR and Executive views, enforced on the server, not just hidden in the UI.
+- **Task management**: managers create and assign tasks; assignees update status (To do, In progress, Blocked, Done).
+- **Leave management**: employees request leave and HR or executives approve or decline it.
+- **Executive overview**: company health score, project progress, risks, revenue and contract alerts at a glance.
+- **AI contract intelligence**: upload a contract (PDF or text) and the AI extracts a summary, obligations, owners and deadlines.
+- **Contract-to-task automation**: one click turns extracted obligations into tasks in a "Contracts" project.
+- **HeimDall AI assistant**: ask questions about overdue work, blocked tasks and upcoming obligations.
+- **Secure sign-in**: Google and GitHub OAuth, with executive role bootstrapping via an allow-list.
+- **Light and dark mode**, responsive layout.
 ---
 
 
@@ -62,86 +66,107 @@ HeimDall brings a company's day-to-day work into one workspace. The landing page
 - [Sketch](./sketches)
 
 ---
+ 
+## Architecture
+ 
+```
+Browser
+  └── Next.js 15 on Vercel
+        ├── /app            Pages + Server Components
+        ├── /app/api        REST API routes (role-checked)
+        ├── /components     Shell, dashboards, UI kit
+        └── /lib            Prisma client, auth guard, client store, AI helpers
+              └── Neon Postgres (via Prisma)
+              └── Gemini API (contract extraction, assistant)
+```
+ 
+A signed-in user's role is read from the database on every API call. The client loads role-filtered workspace data from `/api/bootstrap` and sends changes (tasks, leave, roles) back through small REST routes. When a contract is uploaded, the server sends it to the AI model, validates the JSON it returns, stores the contract and its obligations, and creates tasks on request.
+ 
+---
 
 ## Tech Stack
-
-| Component | Technology | Purpose |
+ 
+| Layer | Technology | Why |
 |---|---|---|
-| Framework | Next.js (App Router) & React | Routing and component-based frontend |
-| Language | TypeScript | Strict type-checking |
-| Styling | Tailwind CSS v4 | Responsive, utility-first design |
-| State management | React Context API & `localStorage` | Session and data state that survives refreshes without a backend |
-| Data source | Local `data.json` | User profiles, tasks, contracts and projects |
-| Deployment | Vercel | Hosts the production build |
-
+| Framework | Next.js 15 (App Router) + React 19 | Full-stack in one codebase, server components |
+| Database | Neon PostgreSQL + Prisma 6 | Typed queries, easy schema changes |
+| Auth | Auth.js (next-auth v5) with Google + GitHub | Secure OAuth, no passwords to store |
+| Styling | Tailwind CSS 4 | Fast, consistent, themeable |
+| AI | Google Gemini API | Reads PDFs and returns structured JSON |
+| Deployment | Vercel | Native Next.js hosting |
+ 
 ---
-
-## Setup Instructions
-
-**Prerequisites:** Git and Node.js v18 or higher.
-
+## Database Schema
+ 
+```sql
+-- Key tables (managed with Prisma)
+ 
+users          (id, name, email, role[EMPLOYEE|MANAGER|HR|EXECUTIVE], title, dept, city, joined_at, on_leave)
+accounts       (id, user_id → users.id, provider, provider_account_id, ...)   -- Auth.js
+sessions       (id, session_token, user_id → users.id, expires)               -- Auth.js
+projects       (id, name, sub, status, pct, team, lead, milestone, deadline)
+tasks          (id, title, desc, priority, due, status[TODO|PROGRESS|BLOCKED|DONE],
+                progress, reason, project_id → projects.id, assignee_id → users.id)
+leave_requests (id, user_id → users.id, type, from, to, status[PENDING|APPROVED|DECLINED])
+risks          (id, level, title, detail, dept, next)
+contracts      (id, name, due, note, party, summary, file_name, created_at)
+obligations    (id, contract_id → contracts.id, text, owner, kind, due, priority, task_id)
+activity       (id, who, what, target, at)
+```
+ 
+---
+## API Routes
+ 
+| Method | Route | Auth |
+|--------|-------|------|
+| GET | `/api/bootstrap` | Signed in (data filtered by role) |
+| POST | `/api/tasks` | Manager, Executive |
+| PATCH | `/api/tasks/:id` | Assignee, Manager, Executive |
+| DELETE | `/api/tasks/:id` | Manager, Executive |
+| POST | `/api/leave` | Signed in |
+| PATCH | `/api/leave/:id` | HR, Executive |
+| PATCH | `/api/users/:id` | Executive |
+| GET | `/api/contracts` | Manager, Executive |
+| POST | `/api/contracts/analyze` | Manager, Executive |
+| POST | `/api/contracts/:id/tasks` | Manager, Executive |
+| DELETE | `/api/contracts/:id` | Manager, Executive |
+ 
+---
+## Getting Started
+ 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/Sumit10Sinha/HeimDall.git
-
-# 2. Go to the frontend directory
-cd HeimDall/heimdall-frontend
-
-# 3. Install dependencies
+git clone https://github.com/YOUR_USERNAME/YOUR_REPO
+cd YOUR_REPO
 npm install
-
-# 4. Start the development server
+cp .env.example .env.local
+# Edit .env.local
+npx prisma db push
+npm run db:seed   # optional demo data
 npm run dev
 ```
-
-Open **http://localhost:3000** in your browser.
-
+---
+ 
 ## Environment Variables
-
-None required for this phase.
-
+ 
 | Variable | Description |
 |---|---|
-| *(none)* | The app runs entirely on local mock data. |
-
+| `DATABASE_URL` | Pooled Postgres connection string (Neon) |
+| `DATABASE_URL_UNPOOLED` | Direct connection string for migrations |
+| `AUTH_SECRET` | Auth.js secret (`npx auth secret`) |
+| `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` | GitHub OAuth app credentials |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth credentials |
+| `ADMIN_EMAILS` | Comma-separated emails that become Executive on first sign-in |
+| `AI_PROVIDER` | `gemini` |
+| `AI_MODEL` | Model name used for extraction |
+| `GEMINI_API_KEY` | **Server-only** Gemini API key (never prefix with `NEXT_PUBLIC_`) |
+ 
 ---
-
-## Must Haves
-
-### Working features
-
-| Feature | Implementation | Experience |
-|---|---|---|
-| Role-Based Access Control | The landing page updates the global `WorkspaceContext` on persona selection | UI, navigation and data change for Employee, Manager, HR or Executive |
-| In-App Dashboard Toggles | Role-switching buttons in the top-right nav | Jump between the 4 dashboards without logging out |
-| Sign Out | A working button on all 4 dashboards | Clears session state and returns to the landing page |
-| Real-Time Task Analytics Sync | Updating an Employee task status changes the shared mock JSON state | Manager's Workload Status chart recalculates automatically |
-| Live HR Directory Search | Reactive filtering of the employee table | Instant results as you type |
-| AI Assistant | Chat widget on Employee, Manager, HR and Executive dashboards | Simulated async AI response |
-
-### Animations
-
-- **Page transitions:** `animate-fade-in` on the landing page, welcome headers and dashboards.
-- **Micro-interactions:** hover states on sidebar links, action buttons and persona cards.
-- **Theme transition:** 300ms eased dark/light mode switch.
-- **Mobile drawer:** Gemini-style slide-out navigation using native Tailwind transitions (375px view only).
-
-### Data source
-
-The whole app is powered by a local **`data.json`**. The dashboards read, map and render user profiles, task lists, contracts and projects directly from it.
-
-### Empty state
-
-HR Dashboard → Employee Directory. Type a random string such as `xyz` into **"Search name..."**. The table is replaced by a dashed-border box reading *"No employees found. Try adjusting your search query."*
-
-### Loading state
-
-Heimdall AI Assistant widget (visible on the Employee, Manager, HR and Executive dashboards). Type any message into **"Ask AI..."** and press Enter (or click **+**). An `animate-pulse` skeleton of two blinking bars shows for exactly 2 seconds before the response appears.
-
-### Responsiveness and theming
-
-Layouts adapt from mobile (375px) to desktop (1280px), with a dual-button dark/light mode toggle on a global theme state.
-
+## Auth Flow
+ 
+- Provider: Google and GitHub OAuth via Auth.js
+- Sessions: JWT sessions, user records stored through the Prisma adapter
+- Roles: new users start as Employee; emails in `ADMIN_EMAILS` become Executive on first sign-in, and Executives can change other users' roles
+- Protected routes: unauthenticated visitors are redirected to the sign-in page, and every API route re-checks the user's role on the server
 ---
 
 ## What We Learnt
@@ -164,4 +189,4 @@ Layouts adapt from mobile (375px) to desktop (1280px), with a dual-button dark/l
 
 ---
 
-*Submitted to Journey to Mastery - Level 2: Kenshi*
+*Submitted to Journey to Mastery - Level 3: samurai*
