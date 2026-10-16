@@ -52,7 +52,7 @@ export default function AIWidget(){
   }
   if(/block/.test(s)){
    const a=(tasks||[]).filter((t:any)=>t.status==='blocked')
-   return a.length?`Blocked: ${a.map((t:any)=>`${t.title}. ${t.reason||''}`).join('; ')}.`:'No tasks are blocked.'
+   return a.length?`Blocked: ${a.map((t:any)=>`${t.title}.${t.reason||''}`).join('; ')}.`:'No tasks are blocked.'
   }
   if(/project/.test(s)){
    const p = data?.projects || []
@@ -85,8 +85,14 @@ export default function AIWidget(){
     setBusy(false)
     return
    }
-  }catch{
-   // Fall back to local matcher
+   if(json?.debugError){
+    console.warn('HeimDall AI Debug:', json.debugError)
+    setMsgs(m=>[...m,{r:'a',t:`[AI Config Warning: ${json.debugError}] — Fallback: ${fallbackAnswer(s)}`}])
+    setBusy(false)
+    return
+   }
+  }catch(err){
+   console.error(err)
   }
 
   setTimeout(()=>{

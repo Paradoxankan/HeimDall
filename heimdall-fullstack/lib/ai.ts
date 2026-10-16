@@ -128,7 +128,7 @@ async function callAnthropic(
     })
   }
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch('[https://api.anthropic.com/v1/messages](https://api.anthropic.com/v1/messages)', {
     method: 'POST',
     headers: {
       'x-api-key': apiKey,
@@ -188,15 +188,14 @@ async function callGemini(
     })
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+  const url = `[https://generativelanguage.googleapis.com/v1beta/models/$](https://generativelanguage.googleapis.com/v1beta/models/$){encodeURIComponent(
     model
-  )}:generateContent`
+  )}:generateContent?key=${encodeURIComponent(apiKey)}`
 
   const res = await fetch(url, {
     method: 'POST',
     headers: {
-      'content-type': 'application/json',
-      'x-goog-api-key': apiKey
+      'content-type': 'application/json'
     },
     body: JSON.stringify({
       systemInstruction: {
@@ -228,7 +227,9 @@ async function callGemini(
 }
 
 export async function extractContract(input: ContractInput): Promise<ExtractedContract> {
-  const provider = (process.env.AI_PROVIDER || 'anthropic').toLowerCase()
+  const geminiKey = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim()
+  const anthropicKey = (process.env.ANTHROPIC_API_KEY || '').trim()
+  const provider = (process.env.AI_PROVIDER || (geminiKey ? 'gemini' : 'anthropic')).toLowerCase()
   const todayStr = new Date().toISOString().slice(0, 10)
 
   const systemPrompt = `You are HeimDall AI Contract Intelligence, a specialized legal document analyzer.
@@ -262,44 +263,76 @@ CRITICAL INSTRUCTIONS:
   ]
 }`
 
-  let lastError: Error | null = null
+  if (provider === 'gemini' || geminiKey) {
+    if (!geminiKey) {
+      throw new Error('Missing GEMINI_API_KEY environment variable. Please configure it in your settings.')
+    }
 
-  for (let attempt = 1; attempt <= 2; attempt++) {
+    let modelsToTry = [
+      'gemini-3-flash-preview',
+      'gemini-3.1-flash-lite-preview',
+      'gemini-2.5-pro',
+      'gemini-flash-latest',
+      'gemini-flash-lite-latest'
+    ]
+
     try {
-      let rawText = ''
-      if (provider === 'gemini') {
-        const apiKey = process.env.GEMINI_API_KEY
-        if (!apiKey) {
-          throw new Error('Missing GEMINI_API_KEY environment variable. Please configure it in your settings.')
-        }
-        const model = process.env.AI_MODEL || 'gemini-1.5-flash'
-        rawText = await callGemini(input, systemPrompt, apiKey, model)
-      } else {
-        // Default: anthropic
-        const apiKey = process.env.ANTHROPIC_API_KEY
-        if (!apiKey) {
-          throw new Error('Missing ANTHROPIC_API_KEY environment variable. Please configure it in your settings.')
-        }
-        const model = process.env.AI_MODEL || 'claude-3-5-sonnet-20241022'
-        rawText = await callAnthropic(input, systemPrompt, apiKey, model)
-      }
+      const listRes = await fetch(`[https://generativelanguage.googleapis.com/v1beta/models?key=$](https://generativelanguage.googleapis.com/v1beta/models?key=$){encodeURIComponent(geminiKey)}`)
+      if (listRes.ok) {
+        const listData = await listRes.json()
+        const retired = new Set([
+          'gemini-2.5-flash',
+          'gemini-2.5-flash-lite',
+          'gemini-2.0-flash',
+          'gemini-2.0-flash-lite',
+          'gemini-1.5-flash',
+          'gemini-1.5-pro'
+        ])
+        const discovered: string[] = (listData.models || [])
+          .filter((m: any) =>
+            m.supportedGenerationMethods?.includes('generateContent') &&
+            m.name.includes('gemini') &&
+            !m.name.includes('image') &&
+            !m.name.includes('tts') &&
+            !m.name.includes('embedding') &&
+            !m.name.includes('robotics') &&
+            !m.name.includes('computer-use') &&
+            !m.name.includes('aqa')
+          )
+          .map((m: any) => m.name.replace('models/', ''))
+          .filter((n: string) => !retired.has(n))
 
-      const cleaned = cleanJsonText(rawText)
-      const parsed = JSON.parse(cleaned)
-      const validated = validateAndCoerce(parsed, input.fileName)
-      return validated
-    } catch (err: any) {
-      lastError = err
-      // If error is missing API key, do not retry
-      if (err.message?.includes('Missing') && err.message?.includes('API_KEY')) {
-        throw err
+        const gemini3 = discovered.filter(m => m.startsWith('gemini-3'))
+        const rest = discovered.filter(m => !m.startsWith('gemini-3'))
+        if (discovered.length > 0) {
+          modelsToTry = [...gemini3, ...rest]
+        }
       }
-      if (attempt === 2) {
-        throw new Error(`Failed to extract contract data after 2 attempts: ${err.message}`)
+    } catch {
+      // Fallback to default modelsToTry array
+    }
+
+    let lastErr: Error | null = null
+    for (const model of modelsToTry.slice(0, 6)) {
+      try {
+        const rawText = await callGemini(input, systemPrompt, geminiKey, model)
+        const cleaned = cleanJsonText(rawText)
+        const parsed = JSON.parse(cleaned)
+        return validateAndCoerce(parsed, input.fileName)
+      } catch (err: any) {
+        lastErr = err
       }
     }
+    throw lastErr || new Error('All Gemini models failed during contract extraction')
   }
 
-  throw lastError || new Error('Unknown error during contract extraction')
+  // Fallback: Anthropic
+  if (!anthropicKey) {
+    throw new Error('Missing ANTHROPIC_API_KEY environment variable. Please configure it in your settings.')
+  }
+  const model = process.env.AI_MODEL || 'claude-3-5-sonnet-latest'
+  const rawText = await callAnthropic(input, systemPrompt, anthropicKey, model)
+  const cleaned = cleanJsonText(rawText)
+  const parsed = JSON.parse(cleaned)
+  return validateAndCoerce(parsed, input.fileName)
 }
-
